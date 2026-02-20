@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "SaveMate",
+  "version": "1.0",
+  "description": "Compares prices across your saved shopping sites and tracks how much you save.",
+
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+
+  "host_permissions": [
+    "<all_urls>"
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "48": "icons/icon.png"
+    },
+    "default_badge_background_color": "#00b894"
+  },
+
+  "icons": {
+    "48": "icons/icon.png"
+  }
+}

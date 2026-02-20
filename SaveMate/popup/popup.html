@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SaveMate</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+<div class="wrapper">
+
+  <h1 class="title">Extension Hub</h1>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab inactive" id="youtubeTab">YouTube</button>
+    <button class="tab active"   id="shoppingTab">Shopping</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SHOPPING SECTION                        -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="shoppingSection">
+
+    <!-- Total Saved -->
+    <div class="total-saved">
+      <p style="margin:0 0 4px;font-size:13px;color:#aaffcc">Total Money Saved</p>
+      <h2 id="totalSaved" style="margin:0;font-size:26px">$0.00</h2>
+    </div>
+
+    <!-- Current Product -->
+    <div class="card">
+      <p class="section-title" style="margin-top:0">Current Product</p>
+      <div class="product">
+        <div>
+          <p class="product-name" id="productName">Open a product page to start</p>
+          <span class="tracking">Tracking Amazon - Walmart - Best Buy</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Price Comparison -->
+    <p class="section-title">Prices</p>
+
+    <!--
+      .price-card elements are injected HERE by popup.js
+      renderPriceCards() removes these and replaces with real data
+    -->
+    <div class="price-card" id="placeholder-card">
+      <div>
+        <p class="site">Waiting for product...</p>
+        <h3>—</h3>
+      </div>
+    </div>
+
+    <!-- Tracked Sites -->
+    <p class="section-title">Tracked Sites</p>
+
+    <div class="tracked-input">
+      <input type="text" id="newSite" placeholder="Add new site (coming soon)">
+      <button class="add-btn" id="addSiteBtn">+</button>
+    </div>
+
+    <div class="tags" id="tagsContainer">
+      <!-- Filled by renderTags() in popup.js -->
+      <span class="tag">Amazon</span>
+      <span class="tag">Walmart</span>
+      <span class="tag">Best Buy</span>
+    </div>
+
+  </div><!-- end shoppingSection -->
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- YOUTUBE SECTION                         -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="youtubeSection" style="display:none;">
+    <div class="card">
+      <p>YouTube to be implemented!!</p>
+    </div>
+  </div>
+
+</div><!-- end wrapper -->
+
+<script src="popup.js"></script>
+</body>
+</html>
