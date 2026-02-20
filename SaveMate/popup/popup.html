@@ -1,15 +1,89 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>SaveMate Test</title>
-  <link rel="stylesheet" href="popup.css">
+    <title>Extension Pack</title>
+    <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h2>SaveMate Test</h2>
-  <p>This is a simple popup to test your extension.</p>
-  <button id="clickMe">Click Me!</button>
-  <p id="message"></p>
 
-  <script src="popup.js"></script>
+<div class="wrapper">
+
+<h1 class="title">Extension Pack</h1>
+
+<!-- Tabs -->
+<div class="tabs">
+    <button class="tab inactive" id="youtubeTab">YouTube</button>
+    <button class="tab active" id="shoppingTab">Shopping</button>
+</div>
+
+<!-- Shopping Section -->
+<div id="shoppingSection">
+
+    <div class="total-saved">
+        <p>Total Money Saved</p>
+        <h2 id="totalSaved">$247.89</h2>
+    </div>
+
+    <div class="card">
+        <p class="section-title">Current Product</p>
+        <div class="product">
+        <img src="https://via.placeholder.com/60" alt="product">
+        <div>
+            <p class="product-name" id="productName">Wireless Headphones</p>
+            <span class="tracking">Tracking 3 sites</span>
+        </div>
+        </div>
+    </div>
+
+    <p class="section-title">Prices</p>
+
+    <div class="price-card">
+    <div>
+        <p class="site">Amazon</p>
+        <h3>$89.99</h3>
+    </div>
+    <span class="stock">In Stock</span>
+    </div>
+
+    <div class="price-card">
+    <div>
+        <p class="site">eBay</p>
+        <h3>$92.50</h3>
+    </div>
+    <span class="stock">In Stock</span>
+    </div>
+
+    <div class="price-card best">
+    <div>
+        <p class="site">Walmart <span class="badge">Lowest</span></p>
+        <h3>$87.99</h3>
+    </div>
+    <span class="stock">In Stock</span>
+    </div>
+
+    <p class="section-title">Tracked Sites</p>
+
+    <div class="tracked-input">
+    <input type="text" id="newSite" placeholder="Add new site...">
+    <button class="add-btn" id="addSiteBtn">+</button>
+    </div>
+
+    <div class="tags" id="tagsContainer">
+    <span class="tag">Amazon ×</span>
+    <span class="tag">eBay ×</span>
+    <span class="tag">Walmart ×</span>
+    </div>
+    </div>
+
+<!-- YouTube Section -->
+    <div id="youtubeSection" style="display:none;">
+        <div class="card">
+        <p>YouTube module coming soon...</p>
+    </div>
+</div>
+
+</div>
+
+<script src="popup.js"></script>
 </body>
 </html>
