@@ -3,17 +3,55 @@ function filterVideos() {
     const tags = result.tags || [];
     if (tags.length === 0) return;
 
-    const videos = document.querySelectorAll("ytd-rich-item-renderer");
-
-    videos.forEach(video => {
-      const title = video.querySelector("#video-title")?.innerText.toLowerCase();
+    // Function to filter a single video card
+    function filterVideoCard(video) {
+      const titleElement = video.querySelector(".yt-core-attributed-string");
+      const title = titleElement?.textContent?.trim().toLowerCase() || "";
       const matches = tags.some(tag => title.includes(tag));
-      if (!matches) video.remove();
+
+      if (!matches) {
+        video.remove();
+      }
+    }
+
+    // 1. Filter all currently rendered videos
+    const videos = document.querySelectorAll("ytd-rich-item-renderer, ytd-compact-video-renderer");
+    videos.forEach(video => filterVideoCard(video));
+
+    // 2️. Observe the DOM for newly added video cards
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === 1) { // Ensure it’s an element node
+            if (node.tagName === "YTD-RICH-ITEM-RENDERER" || node.tagName === "YTD-COMPACT-VIDEO-RENDERER") {
+              filterVideoCard(node);
+            }
+
+            // Sometimes YouTube wraps new videos in divs; check children
+            node.querySelectorAll && node.querySelectorAll("ytd-rich-item-renderer, ytd-compact-video-renderer").forEach(child => {
+              filterVideoCard(child);
+            });
+          }
+        });
+      });
     });
+
+    observer.observe(document.body, { childList: true, subtree: true });
   });
 }
 
-const observer = new MutationObserver(filterVideos);
-observer.observe(document.body, { childList: true, subtree: true });
+// Wait until titles are loaded
+function waitForTitles() {
+  const videos = document.querySelectorAll("ytd-rich-item-renderer, ytd-compact-video-renderer");
+  const anyTitle = Array.from(videos).some(video => video.querySelector(".yt-core-attributed-string")?.textContent?.trim());
 
-filterVideos();
+  if (!anyTitle) {
+    setTimeout(waitForTitles, 500);
+    return;
+  }
+
+  filterVideos();
+}
+
+// Start the script
+waitForTitles();

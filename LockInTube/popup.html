@@ -2,12 +2,44 @@
 <html>
 <head>
   <title>FocusTube</title>
+  <link rel="stylesheet" type="text/css" href="popup.css">
 </head>
-<body>
-  <h3>Allowed Topics</h3>
-  <input type="text" id="tagInput" placeholder="Add a topic">
-  <button id="addTag">Add</button>
-  <ul id="tagList"></ul>
+<body class="popup-body">
+  <div class="btn-div">
+    <button class="clear-search-btn" id="clearSearch">Clear Youtube Search Bar</button>
+  </div>
+
+  <div>
+    <h3 class="main-headers">Video Filters</h3>
+    <div class="checkboxes">
+      <label><input type="checkbox" class="filter-checkbox"> Short</label>
+      <label><input type="checkbox" class="filter-checkbox"> Medium</label>
+      <label><input type="checkbox" class="filter-checkbox"> Long</label>
+    </div>
+  </div>
+
+    <div>
+    <h3 class="main-headers">Upload Date</h3>
+    <div class="date-checkboxes" id="uploadDateCheckboxes">
+      <label><input type="checkbox" class="filter-checkbox"> Today</label>
+      <label><input type="checkbox" class="filter-checkbox"> This Week</label>
+      <label><input type="checkbox" class="filter-checkbox"> This Month</label>
+      <label><input type="checkbox" class="filter-checkbox"> This Year</label>
+    </div>
+  </div>
+
+  <div class="filtering-div">
+    <h3 class="main-headers">Allowed Video Tags</h3>
+    <div class="input-div">
+      <input class="add-tag-input" type="text" id="tagInput" placeholder="Add a topic">
+      <button class="add-tag-btn" id="addTag">Add</button>
+    </div>
+    <ul class="tag-list" id="tagList"></ul>
+  </div>
+  <div class="cleaning-btns">
+    <button class="clean-btn" id="clearTagsBtn">Clear Tags</button>
+    <button class="clean-btn" id="reloadPage">Apply Tags</button>
+  </div>
 
   <script src="popup.js"></script>
 </body>
