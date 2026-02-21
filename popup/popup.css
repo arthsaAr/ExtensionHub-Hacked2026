@@ -51,6 +51,40 @@ body {
   color: #fff;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.home-btn {
+  background: #141f2e;
+  border: 1px solid #253550;
+  border-radius: 8px;
+  color: #6b7a99;
+  font-size: 15px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+  padding: 0;
+  line-height: 1;
+}
+
+.home-btn:hover {
+  background: #1a2840;
+  border-color: #2f6df6;
+  color: #fff;
+}
+
+.home-btn.hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .selector-wrap {
   position: relative;
 }
@@ -90,6 +124,85 @@ body {
 .section-select:focus {
   border-color: #2f6df6;
   box-shadow: 0 0 0 3px rgba(47, 109, 246, 0.15);
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   HOME — Service picker screen
+   ════════════════════════════════════════════════════════════ */
+
+#homeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.home-greeting {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a5a78;
+  letter-spacing: 0.01em;
+}
+
+.home-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #111c2c;
+  border: 1px solid #1e2d42;
+  border-radius: 12px;
+  padding: 16px 16px;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, transform 0.15s;
+}
+
+.home-card:hover {
+  background: #162030;
+  border-color: #2f6df6;
+  transform: translateX(3px);
+}
+
+.home-card__icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+}
+
+.home-card p {
+  margin: 0;
+}
+
+.home-card__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #dde3f0;
+  margin-bottom: 3px !important;
+}
+
+.home-card__sub {
+  font-size: 11px;
+  color: #4a5a78;
+  font-weight: 500;
+}
+
+.home-card__arrow {
+  margin-left: auto;
+  color: #2a3f5e;
+  font-size: 16px;
+  transition: color 0.18s, transform 0.18s;
+}
+
+.home-card:hover .home-card__arrow {
+  color: #2f6df6;
+  transform: translateX(3px);
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -585,6 +698,10 @@ body {
   color: #a0aecc;
   margin-bottom: 16px;
 }
+
+/* ════════════════════════════════════════════════════════════
+   5. SUMMARIZE
+   ════════════════════════════════════════════════════════════ */
 
 #summarizeSection .container {
   background: #111c2c;

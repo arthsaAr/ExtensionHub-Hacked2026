@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>SaveMate</title>
+  <title>ExtensionHub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -11,18 +11,58 @@
 <body>
 <div class="wrapper">
 
+  <!-- ══════════════════════════════════════════════════════════
+       HOME — First launch / service picker
+       ══════════════════════════════════════════════════════════ -->
+  <div id="homeSection" style="display:none;">
+    <p class="home-greeting">What do you want to do today?</p>
+    <div class="home-cards">
+
+      <div class="home-card" data-section="shoppingSection">
+        <span class="home-card__icon">🛒</span>
+        <div>
+          <p class="home-card__title">Shopping</p>
+          <p class="home-card__sub">Compare prices across stores</p>
+        </div>
+        <span class="home-card__arrow">→</span>
+      </div>
+
+      <div class="home-card" data-section="youtubeSection">
+        <span class="home-card__icon">▶</span>
+        <div>
+          <p class="home-card__title">LockInTube</p>
+          <p class="home-card__sub">Focus mode for YouTube</p>
+        </div>
+        <span class="home-card__arrow">→</span>
+      </div>
+
+      <div class="home-card" data-section="summarizeSection">
+        <span class="home-card__icon">📄</span>
+        <div>
+          <p class="home-card__title">Summarize</p>
+          <p class="home-card__sub">Summarize any page</p>
+        </div>
+        <span class="home-card__arrow">→</span>
+      </div>
+
+    </div>
+  </div><!-- end homeSection -->
+
   <!-- ── Header ─────────────────────────────────────────────── -->
   <header class="header">
     <div class="logo">
       <span class="logo-icon">◈</span>
       <span class="logo-text">ExtensionHub</span>
     </div>
-    <div class="selector-wrap">
-      <select class="section-select" id="sectionSelect">
-        <option value="shoppingSection">🛒 Shopping</option>
-        <option value="youtubeSection">▶ YouTube</option>
-        <option value="summarizeSection">📄 Summarize</option>
-      </select>
+    <div class="header-right">
+      <button class="home-btn" id="homeBtn" title="Back to home">⌂</button>
+      <div class="selector-wrap">
+        <select class="section-select" id="sectionSelect">
+          <option value="shoppingSection">🛒 Shopping</option>
+          <option value="youtubeSection">▶ YouTube</option>
+          <option value="summarizeSection">📄 Summarize</option>
+        </select>
+      </div>
     </div>
   </header>
 
