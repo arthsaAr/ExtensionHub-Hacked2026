@@ -343,310 +343,20 @@ function scoreRelevance(searchQuery, resultTitle) {
   return score;
 }
 
-// ── WALMART CA ───────────────────────────────────────────────
-
-async function searchWalmart(query, originalTitle) {
-  try {
-    const q = encodeURIComponent(query);
-
-    // Multiple endpoints in case one fails
-    const endpoints = [
-      `https://www.walmart.ca/api/product-page/search-v2?query=${q}&page=1&lang=en`,
-      `https://www.walmart.ca/api/product-page/find?query=${q}&lang=en&pageSize=12`,
-    ];
-
-    let items = [];
-    for (const url of endpoints) {
-      try {
-        const res = await fetch(url, {
-          headers: {
-            'Accept':          'application/json',
-            'Accept-Language': 'en-CA,en;q=0.9',
-            'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            'Referer':         `https://www.walmart.ca/search?q=${q}`,
-          },
-        });
-        if (!res.ok) { console.log(`[SaveMate] Walmart: ${res.status} from ${url}`); continue; }
-        const json = await res.json();
-        items = json?.items?.[0]?.products || json?.products || json?.items || json?.results || [];
-        if (items.length) { console.log(`[SaveMate] Walmart: ${items.length} items`); break; }
-      } catch (e) { console.log('[SaveMate] Walmart endpoint error:', e.message); }
-    }
-
-    if (!items.length) { console.warn('[SaveMate] Walmart: all endpoints empty'); return null; }
-
-    const candidates = [];
-    for (const item of items.slice(0, 12)) {
-      const price = parseFloat(
-        item?.priceObject?.price          ??
-        item?.prices?.currentPrice?.price ??
-        item?.salePrice                   ??
-        item?.price                       ?? 0
-      );
-      if (!price || price <= 0) continue;
-      const name = item?.name || item?.description || item?.title || '';
-      if (!name) continue;
-      const id    = item?.id || item?.itemId || item?.productId || '';
-      const score = scoreRelevance(query, name);
-      candidates.push({ price, name, id, score });
-    }
-
-    if (!candidates.length) return null;
-    candidates.sort((a, b) => b.score - a.score);
-    const best = candidates[0];
-
-    if (best.score < MIN_RELEVANCE_SCORE) {
-      console.warn(`[SaveMate] Walmart: best too low (${(best.score * 100).toFixed(0)}%): "${best.name.substring(0, 55)}"`);
-      return null;
-    }
-
-    const slug = best.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').substring(0, 80);
-    return {
-      price:          best.price,
-      url:            best.id ? `https://www.walmart.ca/en/ip/${slug}/${best.id}` : `https://www.walmart.ca/search?q=${q}`,
-      title:          best.name,
-      siteKey:        'walmart',
-      siteName:       'Walmart CA',
-      relevanceScore: best.score,
-    };
-  } catch (e) {
-    console.error('[SaveMate] Walmart error:', e.message);
-    return null;
-  }
-}
-
-// ── AMAZON CA ────────────────────────────────────────────────
-
-async function searchAmazon(query, originalTitle) {
-  try {
-    const q   = encodeURIComponent(query);
-    const url = `https://www.amazon.ca/s?k=${q}&language=en_CA`;
-
-    const res = await fetch(url, {
-      headers: {
-        'Accept':          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-CA,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Cache-Control':   'no-cache',
-      },
-    });
-
-    if (!res.ok) throw new Error(`Amazon HTTP ${res.status}`);
-    const html = await res.text();
-
-    if (html.includes('captcha') || html.includes('Robot Check') || html.length < 5000) {
-      console.warn('[SaveMate] Amazon: CAPTCHA/empty (length=' + html.length + ')');
-      return null;
-    }
-
-    const cardPattern = /data-asin="([A-Z0-9]{10})"/g;
-    const positions   = [];
-    let match;
-    while ((match = cardPattern.exec(html)) !== null) {
-      if (match[1] && match[1] !== '0000000000') positions.push({ asin: match[1], index: match.index });
-    }
-    console.log(`[SaveMate] Amazon: ${positions.length} ASIN cards found`);
-    if (!positions.length) return null;
-
-    function extractPrice(chunk) {
-      const wholeM = chunk.match(/a-price-whole"[^>]*>\s*([\d,]+)\s*</);
-      const fracM  = chunk.match(/a-price-fraction"[^>]*>\s*(\d{2})\s*</);
-      if (wholeM) {
-        const p = parseInt(wholeM[1].replace(/,/g, ''), 10) + (fracM ? parseInt(fracM[1], 10) / 100 : 0);
-        if (p > 0 && p < 100000) return p;
-      }
-      const prices = [...chunk.matchAll(/\$\s*([\d,]+\.\d{2})/g)]
-        .map(m => parseFloat(m[1].replace(/,/g, '')))
-        .filter(p => p > 0.5 && p < 100000);
-      return prices[0] ?? null;
-    }
-
-    function extractTitle(chunk) {
-      const ariaMatches = [...chunk.matchAll(/aria-label="([^"]{10,250})"/g)];
-      for (const m of ariaMatches) {
-        const t = m[1].trim();
-        if (!t.startsWith('See') && !t.startsWith('Check') && !t.startsWith('Add') && t.length > 15) return t;
-      }
-      const spanM = chunk.match(/class="[^"]*s-line-clamp[^"]*"[^>]*>[\s\S]*?<span[^>]*>([^<]{15,250})<\/span>/);
-      if (spanM) return spanM[1].trim();
-      return null;
-    }
-
-    const candidates = [];
-    for (let i = 0; i < positions.length && candidates.length < 10; i++) {
-      const start = positions[i].index;
-      const end   = positions[i + 1]?.index ?? Math.min(start + 10000, html.length);
-      const chunk = html.slice(start, end);
-      const price = extractPrice(chunk);
-      if (!price) continue;
-      const title = extractTitle(chunk);
-      if (!title) continue;
-      const score = scoreRelevance(query, title);
-      candidates.push({ asin: positions[i].asin, price, title, score });
-    }
-
-    if (!candidates.length) { console.warn('[SaveMate] Amazon: no candidates with price+title'); return null; }
-
-    candidates.sort((a, b) => b.score - a.score);
-    const best = candidates[0];
-
-    if (best.score < MIN_RELEVANCE_SCORE) {
-      console.warn(`[SaveMate] Amazon: best too low (${(best.score * 100).toFixed(0)}%): "${best.title.substring(0, 55)}"`);
-      return null;
-    }
-
-    return {
-      price:          best.price,
-      url:            `https://www.amazon.ca/dp/${best.asin}`,
-      title:          best.title,
-      siteKey:        'amazon',
-      siteName:       'Amazon CA',
-      relevanceScore: best.score,
-    };
-  } catch (e) {
-    console.error('[SaveMate] Amazon error:', e.message);
-    return null;
-  }
-}
-
-// ── BEST BUY CA ──────────────────────────────────────────────
-
-async function searchBestBuy(query, originalTitle) {
-  try {
-    const q   = encodeURIComponent(query);
-    const url = `https://www.bestbuy.ca/api/2.0/json/search?query=${q}&lang=en-CA&pageSize=12&sortBy=relevance&categoryId=`;
-
-    const res = await fetch(url, {
-      headers: {
-        'Accept':          'application/json',
-        'Accept-Language': 'en-CA,en;q=0.9',
-        'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer':         'https://www.bestbuy.ca/',
-      },
-    });
-
-    if (!res.ok) throw new Error(`BestBuy HTTP ${res.status}`);
-    const json     = await res.json();
-    const products = json?.products || [];
-    console.log(`[SaveMate] BestBuy: ${products.length} products`);
-
-    const candidates = products
-      .filter(p => parseFloat(p?.salePrice || p?.regularPrice || 0) > 0)
-      .map(p => ({
-        price: parseFloat(p.salePrice || p.regularPrice),
-        name:  p.name || '',
-        sku:   p.sku || p.productId || '',
-        score: scoreRelevance(query, p.name || ''),
-      }))
-      .sort((a, b) => b.score - a.score);
-
-    if (!candidates.length) return null;
-    const best = candidates[0];
-
-    if (best.score < MIN_RELEVANCE_SCORE) {
-      console.warn(`[SaveMate] BestBuy: best too low (${(best.score * 100).toFixed(0)}%): "${best.name.substring(0, 55)}"`);
-      return null;
-    }
-
-    const slugName = encodeURIComponent(best.name).toLowerCase().replace(/%20/g, '-').substring(0, 80);
-    return {
-      price:          best.price,
-      url:            best.sku
-        ? `https://www.bestbuy.ca/en-ca/product/${slugName}/${best.sku}.aspx`
-        : `https://www.bestbuy.ca/en-ca/search?query=${q}`,
-      title:          best.name,
-      siteKey:        'bestbuy',
-      siteName:       'Best Buy CA',
-      relevanceScore: best.score,
-    };
-  } catch (e) {
-    console.error('[SaveMate] BestBuy error:', e.message);
-    return null;
-  }
-}
-
-// Only grocery / household products — skip everything else.
-
-async function searchSuperstore(query, originalTitle) {
-  if (!isGroceryProduct(originalTitle)) {
-    console.log(`[SaveMate] Superstore: skipped (not grocery): "${originalTitle.substring(0, 40)}"`);
-    return null;
-  }
-
-  try {
-    const q   = encodeURIComponent(query);
-    const url = `https://api.realcanadiansuperstore.ca/v8/products/search?query=${q}&lang=en&storeId=1025&pcId=undefined`;
-
-    const res = await fetch(url, {
-      headers: {
-        'Accept':          'application/json',
-        'Accept-Language': 'en-CA',
-        'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        'Referer':         'https://www.realcanadiansuperstore.ca/',
-        'x-apikey':        'e4f8d35a-bbf3-4a78-a5f2-a22fd26c8cf7',
-      },
-    });
-
-    if (!res.ok) throw new Error(`Superstore HTTP ${res.status}`);
-    const json    = await res.json();
-    const results = json?.results || json?.products || [];
-
-    for (const item of results.slice(0, 8)) {
-      const price = parseFloat(item?.prices?.wasPrice?.value || item?.prices?.price?.value || item?.price || 0);
-      if (!price || price <= 0) continue;
-      const name  = item?.name || '';
-      const score = scoreRelevance(query, name);
-      if (score < MIN_RELEVANCE_SCORE) continue;
-      const code = item?.code || '';
-      const slug  = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      return {
-        price:          price,
-        url:            code ? `https://www.realcanadiansuperstore.ca/p/${slug}/${code}` : `https://www.realcanadiansuperstore.ca/search?search-bar=${q}`,
-        title:          name,
-        siteKey:        'superstore',
-        siteName:       'Superstore',
-        relevanceScore: score,
-      };
-    }
-    return null;
-  } catch (e) {
-    console.error('[SaveMate] Superstore error:', e.message);
-    return null;
-  }
-}
-
-const SITE_SEARCHERS = {
-  amazon:     searchAmazon,
-  walmart:    searchWalmart,
-  bestbuy:    searchBestBuy,
-  superstore: searchSuperstore,
-};
-
 async function runComparison(product) {
   const query = buildSearchQuery(product.title);
-  if (!query) { console.warn('[SaveMate] Empty query for:', product.title); return []; }
+  if (!query) return [];
 
-  console.log(`[SaveMate] ============================`);
-  console.log(`[SaveMate] Product: "${product.title.substring(0, 70)}"`);
-  console.log(`[SaveMate] Query:   "${query}"`);
-  console.log(`[SaveMate] Site:    ${product.site}`);
+  console.log(`[SaveMate] Searching: "${query}" for "${product.title}"`);
+  const serpResults = await searchSerpAPI(query, product.title);
 
-  const otherSites = Object.keys(SITE_SEARCHERS).filter(s => s !== product.site);
-  const results    = await Promise.allSettled(otherSites.map(s => SITE_SEARCHERS[s](query, product.title)));
-
-  const verified = [];
-  for (let i = 0; i < results.length; i++) {
-    if (results[i].status !== 'fulfilled' || !results[i].value) continue;
-    const r = results[i].value;
-    if ((r.relevanceScore ?? 0) >= MIN_RELEVANCE_SCORE) {
-      verified.push(r);
-      console.log(`[SaveMate] ✓ ${r.siteKey}: $${r.price} (${(r.relevanceScore * 100).toFixed(0)}%) "${r.title.substring(0, 45)}"`);
-    }
+  if (!serpResults.length) {
+    console.log('[SaveMate] No relevant SerpAPI results');
+    return [];
   }
 
-  console.log(`[SaveMate] Done: ${verified.length}/${otherSites.length} verified`);
-  return verified;
+  console.log(`[SaveMate] Found ${serpResults.length} relevant results`);
+  return serpResults; // each result has best url
 }
 
 // ─── SAVINGS TRACKING ────────────────────────────────────────
@@ -655,7 +365,11 @@ async function recordPurchase(product) {
   const { lastComparison } = await chrome.storage.local.get('lastComparison');
   let saved = 0;
   if (lastComparison?.prices?.length && product.price) {
-    const others = lastComparison.prices.map(p => p.price).filter(Boolean);
+    const others = lastComparison.prices
+      .filter(p => p.siteKey !== product.site) // exclude the current site
+      .map(p => p.price)
+      .filter(Boolean);
+
     if (others.length) {
       const diff = product.price - Math.min(...others);
       if (diff > 0) saved = diff;
@@ -683,7 +397,7 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
     const tab = await chrome.tabs.get(tabId);
     if (!isShoppingUrl(tab.url)) {
       await chrome.storage.local.remove('lastComparison');
-      chrome.action.setBadgeText({ text: '' });
+      // chrome.action.setBadgeText({ text: '' });
     } else {
       const key  = `tab_${tabId}`;
       const data = await chrome.storage.local.get(key);
@@ -693,13 +407,13 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
         if (r.prices?.length && r.product?.price) {
           const lowest = Math.min(...r.prices.map(p => p.price).filter(Boolean));
           if (lowest < r.product.price) {
-            chrome.action.setBadgeText({ text: `$${(r.product.price - lowest).toFixed(0)}`, tabId });
-            chrome.action.setBadgeBackgroundColor({ color: '#00b894', tabId });
+            // chrome.action.setBadgeText({ text: `$${(r.product.price - lowest).toFixed(0)}`, tabId });
+            // chrome.action.setBadgeBackgroundColor({ color: '#00b894', tabId });
           }
         }
       } else {
         await chrome.storage.local.remove('lastComparison');
-        chrome.action.setBadgeText({ text: '', tabId });
+        // chrome.action.setBadgeText({ text: '', tabId });
       }
     }
   } catch (_) {}
@@ -715,39 +429,60 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (active?.id === tabId) {
         await chrome.storage.local.remove('lastComparison');
-        chrome.action.setBadgeText({ text: '', tabId });
+        // chrome.action.setBadgeText({ text: '', tabId });
       }
     }
   }
 });
 
 // ─── MESSAGE HANDLER ─────────────────────────────────────────
-
+ 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === 'PRODUCT_DETECTED') {
     const tabId  = sender.tab?.id;
-    const tabKey = tabId ? `tab_${tabId}` : 'tab_unknown';
-    const init   = { product: msg.product, prices: [], status: 'searching', timestamp: Date.now(), productUrl: msg.product.url };
-    chrome.storage.local.set({ [tabKey]: init, lastComparison: init });
+    if (!tabId) return true;
+    const tabKey = `tab_${tabId}`;
 
-    runComparison(msg.product).then(async prices => {
-      const record = { ...init, prices, status: 'done' };
-      await chrome.storage.local.set({ [tabKey]: record, lastComparison: record });
-      if (msg.product.price && prices.length) {
-        const lowest = Math.min(...prices.map(p => p.price));
-        if (lowest < msg.product.price) {
-          chrome.action.setBadgeText({ text: `$${(msg.product.price - lowest).toFixed(0)}`, tabId });
-          chrome.action.setBadgeBackgroundColor({ color: '#00b894', tabId });
-        } else {
-          chrome.action.setBadgeText({ text: '', tabId });
+    (async () => {
+      try {
+        const stored   = await chrome.storage.local.get(tabKey);
+        const existing = stored[tabKey];
+
+        if (existing && existing.product?.title === msg.product.title && existing.status === 'done') {
+          console.log('[SaveMate] Cache hit:', msg.product.title);
+          await chrome.storage.local.set({ lastComparison: existing });
+          sendResponse(existing);
+          return;
         }
+
+        const init = { product: msg.product, prices: [], status: 'searching', timestamp: Date.now(), productUrl: msg.product.url };
+        await chrome.storage.local.set({ [tabKey]: init, lastComparison: init });
+
+        const prices = await runComparison(msg.product);
+        const record = { ...init, prices, status: 'done' };
+        await chrome.storage.local.set({ [tabKey]: record, lastComparison: record });
+
+        // if (msg.product.price && prices.length) {
+        //   const lowest = Math.min(...prices.map(p => p.price).filter(Boolean));
+        //   if (lowest < msg.product.price) {
+        //     chrome.action.setBadgeText({ text: `$${(msg.product.price - lowest).toFixed(0)}`, tabId });
+        //     chrome.action.setBadgeBackgroundColor({ color: '#00b894', tabId });
+        //   } else {
+        //     chrome.action.setBadgeText({ text: '', tabId });
+        //   }
+        // }
+
+        sendResponse(record);
+      } catch (err) {
+        console.error('[SaveMate] PRODUCT_DETECTED failed:', err);
+        const failed = { product: msg.product, prices: [], status: 'done' };
+        await chrome.storage.local.set({ [tabKey]: failed, lastComparison: failed });
+        sendResponse(failed);
       }
-    }).catch(err => {
-      console.error('[SaveMate] runComparison failed:', err);
-      chrome.storage.local.set({ [tabKey]: { ...init, prices: [], status: 'done' }, lastComparison: { ...init, prices: [], status: 'done' } });
-    });
-    return true;
+    })();
+
+    return true; // ← must be synchronous so Chrome keeps channel open
   }
 
   if (msg.type === 'PURCHASE_CONFIRMED') {
@@ -758,22 +493,27 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'CLEAR_COMPARISON') {
     const tabId = sender.tab?.id;
     const keys  = ['lastComparison'];
-    if (tabId) { keys.push(`tab_${tabId}`); chrome.action.setBadgeText({ text: '', tabId }); }
+    if (tabId) { keys.push(`tab_${tabId}`); 
+    // chrome.action.setBadgeText({ text: '', tabId }); 
+  }
     chrome.storage.local.remove(keys);
     return true;
   }
 
   if (msg.type === 'GET_COMPARISON') {
-    chrome.tabs.query({ active: true, currentWindow: true }).then(async ([activeTab]) => {
-      if (activeTab?.id) {
-        const key  = `tab_${activeTab.id}`;
+    (async () => {
+      const tabs   = await chrome.tabs.query({ currentWindow: true });
+      const sorted = tabs.slice().sort((a, b) => (b.active ? 1 : 0) - (a.active ? 1 : 0));
+      for (const tab of sorted) {
+        if (!isShoppingUrl(tab.url)) continue;
+        const key  = `tab_${tab.id}`;
         const data = await chrome.storage.local.get(key);
-        if (data[key]) { sendResponse(data[key]); return; }
+        if (data[key]?.product) { sendResponse(data[key]); return; }
       }
       const data = await chrome.storage.local.get('lastComparison');
       sendResponse(data.lastComparison || null);
-    });
-    return true;
+    })();
+    return true; // ← critical
   }
 
   if (msg.type === 'GET_HISTORY') {
@@ -784,3 +524,103 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
 });
+
+// background.js
+// async function searchSerpAPI(query) {
+//   const apiKey = 'ac477310b2fa9590006ea7b90126f449b42fb077486144ec8135111890ef4089';
+//   const url = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(query)}&gl=ca&hl=en&api_key=${apiKey}`;
+
+//   try {
+//     const response = await fetch(url);
+//     const data = await response.json();
+
+//     if (!data.shopping_results) return [];
+
+//     return data.shopping_results.map(item => {
+//       const price = parseFloat(
+//         (item.price || '')
+//           .replace(/[^\d.]/g, '')
+//       );
+
+//       if(!price || price <= 0){
+//         return null;
+//       }
+
+//       const source = (item.source || '').toLowerCase();
+
+//       let siteKey = null;
+//       if (source.includes('amazon')) siteKey = 'amazon';
+//       if (source.includes('walmart')) siteKey = 'walmart';
+//       if (source.includes('best buy')) siteKey = 'bestbuy';
+//       if (source.includes('superstore')) siteKey = 'superstore';
+
+//       // Only keep results from our four supported stores
+//       if (!siteKey) return null;
+      
+//       return {
+//         siteKey,
+//         siteName: item.source,
+//         price: price,
+//         url:
+//           item.product_link ||
+//           item.link ||
+//           item.serpapi_link ||
+//           null,
+//         title: item.title || '',
+//         relevanceScore: 0
+//       };
+//     }).filter(Boolean);
+//   } catch (err) {
+//     console.error('[SaveMate] SerpAPI error:', err);
+//     return [];
+//   }
+// }
+
+async function searchSerpAPI(query, originalTitle) {
+  const apiKey = 'ac477310b2fa9590006ea7b90126f449b42fb077486144ec8135111890ef4089';
+  const url = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(query)}&gl=ca&hl=en&api_key=${apiKey}`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    if (!data.shopping_results) return [];
+
+    // Map and normalize results
+    const results = data.shopping_results.map(item => {
+      const price = parseFloat((item.price || '').replace(/[^\d.]/g, ''));
+      if (!price || price <= 0) return null;
+
+      const source = (item.source || '').toLowerCase();
+      let siteKey = null;
+      if (source.includes('amazon')) siteKey = 'amazon';
+      if (source.includes('walmart')) siteKey = 'walmart';
+      if (source.includes('best buy')) siteKey = 'bestbuy';
+      if (source.includes('superstore')) siteKey = 'superstore';
+      if (!siteKey) return null;
+
+      return {
+        siteKey,
+        siteName: item.source,
+        price,
+        url: item.product_link || item.link || item.serpapi_link || null,
+        title: item.title || '',
+        relevanceScore: scoreRelevance(originalTitle, item.title || '')
+      };
+    }).filter(Boolean);
+
+    // Filter only relevant results
+    const relevant = results.filter(r => r.relevanceScore >= MIN_RELEVANCE_SCORE);
+
+    // Keep only the best per site (lowest price)
+    const bestPerSite = {};
+    for (const r of relevant) {
+      const existing = bestPerSite[r.siteKey];
+      if (!existing || r.price < existing.price) bestPerSite[r.siteKey] = r;
+    }
+
+    return Object.values(bestPerSite).sort((a, b) => a.price - b.price);
+  } catch (err) {
+    console.error('[SaveMate] SerpAPI error:', err);
+    return [];
+  }
+}

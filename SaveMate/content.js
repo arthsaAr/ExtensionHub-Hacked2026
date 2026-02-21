@@ -238,7 +238,7 @@ setInterval(() => {
 
 let buyTimer   = null;
 let popupShown = false;
-const DELAY_MS = 3.5 * 60 * 1000;
+const DELAY_MS = 15 * 1000;
 
 function startTimer(product) {
   if (buyTimer) clearTimeout(buyTimer);

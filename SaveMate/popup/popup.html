@@ -3,75 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <title>SaveMate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
 
 <div class="wrapper">
 
-  <h1 class="title">💰 SaveMate</h1>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">◈</span>
+      <span class="logo-text">SaveMate</span>
+    </div>
+    <div class="tabs">
+      <button class="tab active" id="shoppingTab">Shopping</button>
+      <button class="tab inactive" id="youtubeTab">YouTube</button>
+    </div>
+  </header>
 
-  <!-- Tabs -->
-  <div class="tabs">
-    <button class="tab inactive" id="youtubeTab">YouTube</button>
-    <button class="tab active"   id="shoppingTab">Shopping</button>
-  </div>
-
-  <!-- ═══════════════════════════════════════ -->
-  <!-- SHOPPING SECTION                        -->
-  <!-- ═══════════════════════════════════════ -->
+  <!-- ══════════════════════════════════ -->
+  <!-- SHOPPING SECTION                  -->
+  <!-- ══════════════════════════════════ -->
   <div id="shoppingSection">
 
-    <!-- Total Saved -->
-    <div class="total-saved">
-      <p style="margin:0 0 4px;font-size:13px;color:#aaffcc">Total Money Saved</p>
-      <h2 id="totalSaved" style="margin:0;font-size:26px">$0.00</h2>
+    <!-- Total Saved Banner -->
+    <div class="savings-banner">
+      <div class="savings-banner__label">Total Saved</div>
+      <div class="savings-banner__amount" id="totalSaved">$0.00</div>
+      <div class="savings-banner__glow"></div>
     </div>
 
     <!-- Current Product -->
-    <div class="card">
-      <p class="section-title" style="margin-top:0">Current Product</p>
-      <div class="product">
-        <div>
-          <p class="product-name" id="productName">Open a product page to start</p>
-          <span class="tracking" id="currentSite">Tracking Amazon · Walmart · Best Buy · Superstore</span>
+    <div class="section">
+      <p class="section-label">Current Product</p>
+      <div class="product-card">
+        <div class="product-card__icon">🛒</div>
+        <div class="product-card__info">
+          <p class="product-card__name" id="productName">Open a product page to start</p>
+          <span class="product-card__site" id="currentSite">Tracking Amazon · Walmart · Best Buy · Superstore</span>
         </div>
       </div>
     </div>
 
     <!-- Price Comparison -->
-    <p class="section-title">Price Comparison</p>
-
-    <!-- Dynamic price cards injected here by popup.js -->
-    <div id="priceCardsContainer">
-      <div class="price-card" id="placeholder-card">
-        <div>
-          <p class="site">Waiting for product...</p>
-          <h3>—</h3>
+    <div class="section">
+      <p class="section-label">Price Comparison</p>
+      <div id="priceCardsContainer">
+        <div class="price-card">
+          <div>
+            <p class="site">Waiting for product…</p>
+            <h3>—</h3>
+          </div>
         </div>
       </div>
+      <p class="disclaimer">Prices from search results · click any card to verify</p>
     </div>
-    <p style="font-size:10px;color:#556;margin:-4px 0 12px;text-align:right">
-      ~ prices from search results, click to verify
-    </p>
 
     <!-- Tracked Sites -->
-    <p class="section-title">Tracked Sites</p>
-    <div class="tags" id="tagsContainer">
-      <span class="tag">Amazon CA</span>
-      <span class="tag">Walmart CA</span>
-      <span class="tag">Best Buy CA</span>
-      <span class="tag">Superstore</span>
+    <div class="section">
+      <p class="section-label">Tracked Sites</p>
+      <div class="tags" id="tagsContainer">
+        <span class="tag">Amazon CA</span>
+        <span class="tag">Walmart CA</span>
+        <span class="tag">Best Buy CA</span>
+        <span class="tag">Superstore</span>
+        <button class="tag tag--add" id="addSiteBtn">＋</button>
+      </div>
     </div>
 
   </div><!-- end shoppingSection -->
 
-  <!-- ═══════════════════════════════════════ -->
-  <!-- YOUTUBE SECTION                         -->
-  <!-- ═══════════════════════════════════════ -->
+  <!-- ══════════════════════════════════ -->
+  <!-- YOUTUBE SECTION                   -->
+  <!-- ══════════════════════════════════ -->
   <div id="youtubeSection" style="display:none;">
-    <div class="card">
-      <p>YouTube features coming soon!</p>
+    <div class="coming-soon">
+      <div class="coming-soon__icon">▶</div>
+      <p class="coming-soon__title">YouTube Features</p>
+      <p class="coming-soon__sub">Coming soon — stay tuned.</p>
     </div>
   </div>
 

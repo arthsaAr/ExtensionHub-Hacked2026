@@ -1,0 +1,14 @@
+body {
+  margin: 0;
+  width: 280px;
+  font-family: sans-serif;
+  background: #1a1d24;
+  color: #e4e6ef;
+}
+
+.container {
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: #8c93a8;
+}
