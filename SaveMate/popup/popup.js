@@ -72,9 +72,19 @@ function renderPriceCards(product, prices) {
 
   // Insert in reverse so order comes out correct (insertAdjacentElement afterend reverses)
   [...allSites].reverse().forEach(site => {
-    const isBest = lowestPrice != null && site.price === lowestPrice;
-    const card   = document.createElement('div');
-    card.className = isBest ? 'price-card best' : 'price-card';
+    const isBest     = lowestPrice != null && site.price === lowestPrice;
+    const isClickable = !!site.url;
+    const card        = document.createElement('div');
+    card.className    = isBest ? 'price-card best' : 'price-card';
+
+    // Make whole card clickable if we have a URL
+    if (isClickable) {
+      card.style.cursor = 'pointer';
+      card.title        = 'Click to open this product';
+      card.addEventListener('click', () => {
+        chrome.tabs.create({ url: site.url });
+      });
+    }
 
     card.innerHTML = `
       <div>
@@ -82,16 +92,11 @@ function renderPriceCards(product, prices) {
           ${site.name}
           ${isBest ? '<span class="badge">Lowest</span>' : ''}
         </p>
-        <h3>${fmt(site.price)}</h3>
+        <h3 style="${site.price == null ? 'color:#666;font-size:14px' : ''}">${site.price != null ? fmt(site.price) : 'Not found'}</h3>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
-        <span class="stock">${site.price != null ? 'In Stock' : 'N/A'}</span>
-        ${site.url && site.url !== '#'
-          ? `<a href="${site.url}" target="_blank"
-               style="color:#4c6fff;font-size:11px;text-decoration:none;font-weight:bold">
-               View →
-             </a>`
-          : ''}
+        ${site.price != null ? '<span class="stock">In Stock</span>' : ''}
+        ${isClickable ? `<span style="color:#4c6fff;font-size:11px;font-weight:bold">View →</span>` : ''}
       </div>
     `;
 
@@ -100,36 +105,31 @@ function renderPriceCards(product, prices) {
 }
 
 /**
- * Merges the current page's product with comparison results
- * into a clean list of all 3 sites, always showing all 3.
+ * Builds the comparison list — EXCLUDES the current site,
+ * only shows the other 3 with fetched prices.
+ * If a site had no result, it shows as "Not found".
  */
 function buildSitesList(product, prices) {
-  const nameMap = { amazon: 'Amazon', walmart: 'Walmart', bestbuy: 'Best Buy' };
+  const nameMap = {
+    amazon:     'Amazon',
+    walmart:    'Walmart',
+    bestbuy:    'Best Buy',
+    superstore: 'Superstore',
+  };
 
-  // Current site first
-  const result = [{
-    key:   product.site,
-    name:  nameMap[product.site] || product.site,
-    price: product.price,
-    url:   product.url,
-  }];
+  // Comparison results from background.js (already excludes current site)
+  const result = prices.map(p => ({
+    key:   p.siteKey,
+    name:  p.siteName,
+    price: p.price,
+    url:   p.url,
+  }));
 
-  // Add comparison fetched prices
-  prices.forEach(p => {
-    result.push({
-      key:   p.siteKey,
-      name:  p.siteName,
-      price: p.price,
-      url:   p.url,
-    });
-  });
-
-  // Always show all 3 — fill missing as N/A
-  ['amazon', 'walmart', 'bestbuy'].forEach(key => {
-    if (!result.find(r => r.key === key)) {
-      result.push({ key, name: nameMap[key], price: null, url: '#' });
-    }
-  });
+  // If the opposite site had no result, show it as "Not found"
+  const opposite = product.site === 'amazon' ? 'walmart' : 'amazon';
+  if (!result.find(r => r.key === opposite)) {
+    result.push({ key: opposite, name: nameMap[opposite], price: null, url: null });
+  }
 
   return result;
 }
@@ -137,7 +137,7 @@ function buildSitesList(product, prices) {
 // ─── TAGS ────────────────────────────────────────────────────
 
 function renderTags() {
-  $('tagsContainer').innerHTML = ['Amazon', 'Walmart', 'Best Buy']
+  $('tagsContainer').innerHTML = ['Amazon', 'Walmart']
     .map(t => `<span class="tag">${t}</span>`)
     .join('');
 }
@@ -168,7 +168,53 @@ async function loadShoppingData() {
   }
 
   renderProductName(data.product);
+
+  // Still searching — show spinner and poll until done
+  if (data.status === 'searching') {
+    renderSearchingState();
+    pollUntilDone();
+    return;
+  }
+
   renderPriceCards(data.product, data.prices);
+}
+
+// Shows a "Searching..." card while background tab fetches prices
+function renderSearchingState() {
+  document.querySelectorAll('.price-card').forEach(el => el.remove());
+  const priceTitle = [...document.querySelectorAll('.section-title')]
+    .find(el => el.textContent.trim() === 'Prices');
+  if (!priceTitle) return;
+
+  const card = document.createElement('div');
+  card.className = 'price-card';
+  card.id = 'sm-searching-card';
+  card.innerHTML = `
+    <div style="width:100%;text-align:center;padding:4px 0">
+      <p class="site" style="margin-bottom:8px">🔍 Searching other sites...</p>
+      <div style="height:3px;background:linear-gradient(90deg,#2f6df6,#00b894);border-radius:2px;animation:sm-pulse 1.2s ease-in-out infinite alternate"></div>
+    </div>
+  `;
+  if (!document.getElementById('sm-pulse-style')) {
+    const s = document.createElement('style');
+    s.id = 'sm-pulse-style';
+    s.textContent = '@keyframes sm-pulse{from{opacity:.2}to{opacity:1}}';
+    document.head.appendChild(s);
+  }
+  priceTitle.insertAdjacentElement('afterend', card);
+}
+
+// Poll every 1.5s until background finishes fetching
+function pollUntilDone(attempts = 0) {
+  if (attempts > 12) return; // give up after ~18 seconds
+  setTimeout(async () => {
+    const data = await msg('GET_COMPARISON');
+    if (data?.status === 'done') {
+      renderPriceCards(data.product, data.prices);
+    } else {
+      pollUntilDone(attempts + 1);
+    }
+  }, 1500);
 }
 
 // ─── INIT ────────────────────────────────────────────────────
