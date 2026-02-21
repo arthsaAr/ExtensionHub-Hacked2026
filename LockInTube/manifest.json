@@ -5,8 +5,20 @@
   "description": "Filter YouTube recommendations by topics.",
   "permissions": ["storage"],
   "host_permissions": ["https://*.youtube.com/*"],
+  "icons": {
+      "16": "icons/LockInTube16.png",
+      "32": "icons/LockInTube32.png",
+      "48": "icons/LockInTube48.png",
+      "128": "icons/LockInTube128.png"
+  },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/LockInTube16.png",
+      "32": "icons/LockInTube32.png",
+      "48": "icons/LockInTube48.png",
+      "128": "icons/LockInTube128.png"
+    }
   },
   "content_scripts": [
     {
