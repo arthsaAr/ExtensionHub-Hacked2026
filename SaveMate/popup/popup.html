@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>SaveMate</title>
   <link rel="stylesheet" href="popup.css">
 </head>
@@ -8,7 +9,7 @@
 
 <div class="wrapper">
 
-  <h1 class="title">Extension Hub</h1>
+  <h1 class="title">💰 SaveMate</h1>
 
   <!-- Tabs -->
   <div class="tabs">
@@ -33,38 +34,31 @@
       <div class="product">
         <div>
           <p class="product-name" id="productName">Open a product page to start</p>
-          <span class="tracking">Tracking Amazon - Walmart - Best Buy</span>
+          <span class="tracking" id="currentSite">Tracking Amazon · Walmart · Best Buy · Superstore</span>
         </div>
       </div>
     </div>
 
     <!-- Price Comparison -->
-    <p class="section-title">Prices</p>
+    <p class="section-title">Price Comparison</p>
 
-    <!--
-      .price-card elements are injected HERE by popup.js
-      renderPriceCards() removes these and replaces with real data
-    -->
-    <div class="price-card" id="placeholder-card">
-      <div>
-        <p class="site">Waiting for product...</p>
-        <h3>—</h3>
+    <!-- Dynamic price cards injected here by popup.js -->
+    <div id="priceCardsContainer">
+      <div class="price-card" id="placeholder-card">
+        <div>
+          <p class="site">Waiting for product...</p>
+          <h3>—</h3>
+        </div>
       </div>
     </div>
 
     <!-- Tracked Sites -->
     <p class="section-title">Tracked Sites</p>
-
-    <div class="tracked-input">
-      <input type="text" id="newSite" placeholder="Add new site (coming soon)">
-      <button class="add-btn" id="addSiteBtn">+</button>
-    </div>
-
     <div class="tags" id="tagsContainer">
-      <!-- Filled by renderTags() in popup.js -->
-      <span class="tag">Amazon</span>
-      <span class="tag">Walmart</span>
-      <span class="tag">Best Buy</span>
+      <span class="tag">Amazon CA</span>
+      <span class="tag">Walmart CA</span>
+      <span class="tag">Best Buy CA</span>
+      <span class="tag">Superstore</span>
     </div>
 
   </div><!-- end shoppingSection -->
@@ -74,7 +68,7 @@
   <!-- ═══════════════════════════════════════ -->
   <div id="youtubeSection" style="display:none;">
     <div class="card">
-      <p>YouTube to be implemented!!</p>
+      <p>YouTube features coming soon!</p>
     </div>
   </div>
 

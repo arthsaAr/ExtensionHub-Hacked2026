@@ -1,217 +1,292 @@
 // ============================================================
-// SaveMate — background.js
-// Cross-site price fetching using real hidden browser tabs.
-// Both Amazon and Walmart block server-side fetch — this
-// approach loads their search pages in a real (hidden) tab
-// and injects a script to pull the price from the live DOM.
+// SaveMate — background.js  (v1.1 — API-based search)
+//
+// WHY NOT HIDDEN TABS?
+//   Amazon/Walmart detect automated tabs → CAPTCHA / empty page.
+//   This version uses each site's real public search endpoints
+//   (the same ones their own search bars use) via fetch().
+//   These return JSON or parseable HTML much more reliably.
 // ============================================================
 
-// ─── URL BUILDERS ────────────────────────────────────────────
+// ─── SEARCH QUERY BUILDER ────────────────────────────────────
+// Extracts the most meaningful words from a product title.
+// Strategy: keep brand (first word), key descriptive words,
+// and numeric specs (sizes, counts like "10 inch", "12 piece").
 
-function buildSearchUrl(site, query) {
-  const q = encodeURIComponent(query);
-  if (site === 'amazon')  return `https://www.amazon.ca/s?k=${q}`;
-  if (site === 'walmart') return `https://www.walmart.ca/search?q=${q}`;
-  return null;
-}
+function buildSearchQuery(title) {
+  if (!title) return '';
 
-// ─── TITLE EXTRACTION FROM URL ───────────────────────────────
-// Both sites embed the product name in the URL slug.
-// This is the most reliable source — no DOM timing issues.
+  // Preserve numbers attached to units — they define the product
+  // e.g. "12 Piece" "10 Inch" "2L" "500ml"
+  const words = title.split(/\s+/).filter(Boolean);
 
-function extractTitleFromUrl(url, site) {
-  try {
-    const path = new URL(url).pathname;
-    if (site === 'walmart') {
-      // /en/ip/Mainstays-Montclair-5-Piece-Dining-Set/77UDZY2DVYAV
-      const parts = path.split('/');
-      const ipIdx = parts.indexOf('ip');
-      if (ipIdx >= 0 && parts[ipIdx + 1]) {
-        return parts[ipIdx + 1].replace(/-/g, ' ').trim();
-      }
-    }
-    if (site === 'amazon') {
-      // /PET-Jersey-Medium-Winnipeg-Jets/dp/B0889B9HMM
-      const parts = path.split('/').filter(Boolean);
-      const dpIdx = parts.indexOf('dp');
-      if (dpIdx > 0) {
-        return parts[dpIdx - 1].replace(/-/g, ' ').trim();
-      }
-      // fallback: first path segment
-      if (parts[0] && parts[0].includes('-')) {
-        return parts[0].replace(/-/g, ' ').trim();
-      }
-    }
-  } catch (_) {}
-  return null;
-}
+  const stopWords = new Set([
+    'with','the','a','an','and','or','for','in','on','of','by',
+    'to','from','at','this','that','is','are','was','be',
+    'item','product','brand','new','set','piece',
+  ]);
 
-// ─── CLEAN SEARCH QUERY ──────────────────────────────────────
-// Trim to the most meaningful 5 words for cross-site search.
-// "Mainstays Montclair 5 Piece Outdoor Dining Set Light Grey"
-//   → "Mainstays Montclair 5 Piece Outdoor"
-
-function cleanQuery(title) {
-  const stopWords = new Set(['with','the','a','an','and','or','for','in','on','of','by','to']);
-  return title
-    .split(' ')
-    .map(w => w.trim())
-    .filter(w => w.length > 1 && !stopWords.has(w.toLowerCase()))
-    .slice(0, 5)
-    .join(' ');
-}
-
-// ─── FETCH PRICE VIA HIDDEN TAB ──────────────────────────────
-// Opens a hidden tab, waits for it to load, injects a script
-// to extract the first price from the search results page,
-// then closes the tab.
-
-function fetchPriceViaTab(searchUrl, targetSite) {
-  return new Promise((resolve) => {
-    let tabId = null;
-    const timeout = setTimeout(() => {
-      if (tabId) chrome.tabs.remove(tabId).catch(() => {});
-      resolve(null);
-    }, 15000); // 15 second hard timeout
-
-    chrome.tabs.create({ url: searchUrl, active: false }, (tab) => {
-      tabId = tab.id;
-
-      // Listen for the tab to finish loading
-      function onUpdated(id, info) {
-        if (id !== tabId || info.status !== 'complete') return;
-        chrome.tabs.onUpdated.removeListener(onUpdated);
-
-        // Give JS frameworks a moment to render prices
-        setTimeout(() => {
-          chrome.scripting.executeScript({
-            target: { tabId },
-            func: extractFirstPriceFromPage,
-            args: [targetSite],
-          }, (results) => {
-            clearTimeout(timeout);
-            chrome.tabs.remove(tabId).catch(() => {});
-            const result = results?.[0]?.result;
-            resolve(result || null);
-          });
-        }, 2500); // wait 2.5s for React to render
-      }
-
-      chrome.tabs.onUpdated.addListener(onUpdated);
-    });
+  const meaningful = words.filter(w => {
+    const lw = w.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return lw.length > 1 && !stopWords.has(lw);
   });
+
+  // Take first 6 meaningful words — enough for a good match
+  return meaningful.slice(0, 6).join(' ');
 }
 
-// ─── PRICE EXTRACTOR (runs inside hidden tab) ─────────────────
-// This function is injected into the search results page.
-// It reads the live DOM — no blocking, no CORS, full JS rendered.
+// ─── SITE SEARCH IMPLEMENTATIONS ─────────────────────────────
+// Each function searches one site and returns:
+// { price, url, title, siteKey, siteName } or null
 
-function extractFirstPriceFromPage(site) {
-  function parsePrice(text) {
-    if (!text) return null;
-    const m = text.replace(/,/g, '').match(/\d+\.?\d*/);
-    return m ? parseFloat(m[0]) : null;
-  }
+// ── WALMART CA ───────────────────────────────────────────────
+// Walmart CA has a public search API that returns JSON.
 
-  function trySelectors(selectors) {
-    for (const sel of selectors) {
-      try {
-        const el = document.querySelector(sel);
-        if (el) {
-          const t = el.innerText?.trim() || el.textContent?.trim();
-          if (t) return t;
-        }
-      } catch(_) {}
+async function searchWalmart(query) {
+  try {
+    const q   = encodeURIComponent(query);
+    const url = `https://www.walmart.ca/api/product-page/search-v2?query=${q}&page=1&lang=en`;
+
+    const res = await fetch(url, {
+      headers: {
+        'Accept':          'application/json',
+        'Accept-Language': 'en-CA,en;q=0.9',
+        'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    });
+
+    if (!res.ok) throw new Error(`Walmart API ${res.status}`);
+    const json = await res.json();
+
+    // The API returns items array
+    const items = json?.items?.[0]?.products || json?.products || [];
+    if (!items.length) return null;
+
+    // Find first item with a valid price
+    for (const item of items) {
+      const price = item?.priceObject?.price || item?.prices?.currentPrice?.price || item?.price;
+      if (!price || price <= 0) continue;
+
+      const productId   = item?.id || item?.itemId || '';
+      const productName = item?.name || item?.title || '';
+      const slug        = productName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const productUrl  = productId
+        ? `https://www.walmart.ca/en/ip/${slug}/${productId}`
+        : `https://www.walmart.ca/search?q=${encodeURIComponent(query)}`;
+
+      return {
+        price:    parseFloat(price),
+        url:      productUrl,
+        title:    productName,
+        siteKey:  'walmart',
+        siteName: 'Walmart CA',
+      };
     }
     return null;
+  } catch (e) {
+    console.error('[SaveMate] Walmart search failed:', e.message);
+    return null;
   }
-
-  let price = null;
-  let productUrl = window.location.href;
-  let productTitle = null;
-
-  if (site === 'amazon') {
-    // Amazon search results — first product card
-    const priceSelectors = [
-      '.s-result-item .a-price .a-offscreen',
-      '[data-component-type="s-search-result"] .a-price .a-offscreen',
-      '.a-price .a-offscreen',
-    ];
-    const linkSelectors = [
-      '.s-result-item h2 a',
-      '[data-component-type="s-search-result"] h2 a',
-    ];
-    const titleSelectors = [
-      '.s-result-item h2 span',
-      '[data-component-type="s-search-result"] h2 span',
-    ];
-
-    const rawPrice = trySelectors(priceSelectors);
-    price = parsePrice(rawPrice);
-
-    const link = document.querySelector(linkSelectors.find(s => document.querySelector(s)));
-    if (link) {
-      productUrl = link.href.startsWith('http') ? link.href : `https://www.amazon.ca${link.getAttribute('href')}`;
-    }
-    productTitle = trySelectors(titleSelectors);
-  }
-
-  if (site === 'walmart') {
-    // Walmart search results — first product card
-    const priceSelectors = [
-      '[data-automation="product-price"]',
-      '[data-testid="list-view"] [data-automation="buybox-price"]',
-      '.search-result-product-price',
-      'span[data-automation="buybox-price"]',
-      '[itemprop="price"]',
-      '.price-main',
-    ];
-    const linkSelectors = [
-      'a[data-automation="product-title-link"]',
-      'a[link-identifier="linkIdentifier"]',
-      '.search-result-product-title a',
-    ];
-
-    const rawPrice = trySelectors(priceSelectors);
-    price = parsePrice(rawPrice);
-
-    const link = document.querySelector(linkSelectors.find(s => document.querySelector(s)));
-    if (link) {
-      const href = link.getAttribute('href');
-      productUrl = href?.startsWith('http') ? href : `https://www.walmart.ca${href}`;
-    }
-    productTitle = trySelectors([
-      'a[data-automation="product-title-link"]',
-      '.search-result-product-title',
-    ]);
-  }
-
-  if (!price || price <= 0 || price > 100000) return null;
-
-  return {
-    price,
-    url:      productUrl,
-    title:    productTitle,
-    siteKey:  site,
-    siteName: site === 'amazon' ? 'Amazon' : 'Walmart',
-  };
 }
 
-// ─── MAIN COMPARISON ─────────────────────────────────────────
+// ── AMAZON CA ────────────────────────────────────────────────
+// Amazon blocks direct API access, but their search results
+// page embeds structured JSON data in a <script> tag.
+// We fetch the HTML and parse that JSON — no DOM injection needed.
 
-const OPPOSITE = { amazon: 'walmart', walmart: 'amazon' };
+async function searchAmazon(query) {
+  try {
+    const q   = encodeURIComponent(query);
+    const url = `https://www.amazon.ca/s?k=${q}&language=en_CA`;
+
+    const res = await fetch(url, {
+      headers: {
+        'Accept':          'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-CA,en;q=0.9',
+        'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+    });
+
+    if (!res.ok) throw new Error(`Amazon fetch ${res.status}`);
+    const html = await res.text();
+
+    // Strategy 1: Parse inline JSON data Amazon embeds
+    // Look for price patterns in the raw HTML — Amazon puts
+    // prices in multiple locations in the raw HTML source
+    const pricePatterns = [
+      /"price"\s*:\s*"?\$?([\d,]+\.?\d*)"?/,
+      /class="a-price-whole"[^>]*>([\d,]+)</,
+      /"displayPrice"\s*:\s*"[^$]*\$([\d,]+\.?\d*)"/,
+      /data-a-price="\d+,(\d+)"/,
+    ];
+
+    let price = null;
+    for (const pat of pricePatterns) {
+      const m = html.match(pat);
+      if (m) {
+        const p = parseFloat(m[1].replace(/,/g, ''));
+        if (p > 0 && p < 100000) { price = p; break; }
+      }
+    }
+
+    // Strategy 2: Find product URL from first search result
+    const linkMatch = html.match(/href="(\/[^"]*\/dp\/[A-Z0-9]{10}[^"]*)"/);
+    const asin      = linkMatch?.[1]?.match(/\/dp\/([A-Z0-9]{10})/)?.[1];
+
+    // Strategy 3: Find product title near the ASIN
+    let productTitle = null;
+    if (asin) {
+      const titleRx = new RegExp(`"${asin}"[^{]*?"title"\\s*:\\s*"([^"]{10,150})"`, 's');
+      const tm      = html.match(titleRx);
+      productTitle  = tm?.[1];
+    }
+
+    if (!price) {
+      // Last resort: look for any "$XX.XX" pattern that looks like a product price
+      const allPrices = [...html.matchAll(/\$\s*([\d,]+\.\d{2})/g)]
+        .map(m => parseFloat(m[1].replace(/,/g, '')))
+        .filter(p => p > 1 && p < 100000);
+      if (allPrices.length) price = allPrices[0];
+    }
+
+    if (!price) return null;
+
+    const productUrl = asin
+      ? `https://www.amazon.ca/dp/${asin}`
+      : `https://www.amazon.ca/s?k=${q}`;
+
+    return {
+      price,
+      url:      productUrl,
+      title:    productTitle || query,
+      siteKey:  'amazon',
+      siteName: 'Amazon CA',
+    };
+  } catch (e) {
+    console.error('[SaveMate] Amazon search failed:', e.message);
+    return null;
+  }
+}
+
+// ── BEST BUY CA ──────────────────────────────────────────────
+// Best Buy CA has a public search API used by their website.
+
+async function searchBestBuy(query) {
+  try {
+    const q = encodeURIComponent(query);
+    // Best Buy's public search API (used by bestbuy.ca's own search bar)
+    const url = `https://www.bestbuy.ca/api/2.0/json/search?query=${q}&lang=en-CA&pageSize=5&sortBy=relevance&categoryId=`;
+
+    const res = await fetch(url, {
+      headers: {
+        'Accept':          'application/json',
+        'Accept-Language': 'en-CA,en;q=0.9',
+        'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer':         'https://www.bestbuy.ca/',
+      },
+    });
+
+    if (!res.ok) throw new Error(`BestBuy API ${res.status}`);
+    const json = await res.json();
+
+    const products = json?.products || [];
+    for (const p of products) {
+      const price = p?.salePrice || p?.regularPrice;
+      if (!price || price <= 0) continue;
+
+      const sku = p?.sku || p?.productId || '';
+      const productUrl = sku
+        ? `https://www.bestbuy.ca/en-ca/product/${encodeURIComponent(p.name || query).toLowerCase().replace(/%20/g,'-')}/${sku}.aspx`
+        : `https://www.bestbuy.ca/en-ca/search?query=${q}`;
+
+      return {
+        price:    parseFloat(price),
+        url:      productUrl,
+        title:    p?.name || query,
+        siteKey:  'bestbuy',
+        siteName: 'Best Buy CA',
+      };
+    }
+    return null;
+  } catch (e) {
+    console.error('[SaveMate] Best Buy search failed:', e.message);
+    return null;
+  }
+}
+
+// ── SUPERSTORE CA ────────────────────────────────────────────
+// Real Canadian Superstore — primarily groceries/household.
+// Uses their public search API.
+
+async function searchSuperstore(query) {
+  try {
+    const q   = encodeURIComponent(query);
+    const url = `https://api.realcanadiansuperstore.ca/v8/products/search?query=${q}&lang=en&storeId=1025&pcId=undefined`;
+
+    const res = await fetch(url, {
+      headers: {
+        'Accept':          'application/json',
+        'Accept-Language': 'en-CA',
+        'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Referer':         'https://www.realcanadiansuperstore.ca/',
+        'x-apikey':        'e4f8d35a-bbf3-4a78-a5f2-a22fd26c8cf7', // Public key used by their site
+      },
+    });
+
+    if (!res.ok) throw new Error(`Superstore API ${res.status}`);
+    const json = await res.json();
+
+    const results = json?.results || json?.products || [];
+    for (const item of results) {
+      const price = item?.prices?.wasPrice?.value || item?.prices?.price?.value || item?.price;
+      if (!price || price <= 0) continue;
+
+      const code = item?.code || '';
+      const productUrl = code
+        ? `https://www.realcanadiansuperstore.ca/p/${item?.name?.toLowerCase().replace(/[^a-z0-9]+/g,'-')}/${code}`
+        : `https://www.realcanadiansuperstore.ca/search?search-bar=${q}`;
+
+      return {
+        price:    parseFloat(price),
+        url:      productUrl,
+        title:    item?.name || query,
+        siteKey:  'superstore',
+        siteName: 'Superstore',
+      };
+    }
+    return null;
+  } catch (e) {
+    console.error('[SaveMate] Superstore search failed:', e.message);
+    return null;
+  }
+}
+
+// ─── MAIN COMPARISON ORCHESTRATOR ────────────────────────────
+// Given the current product, searches all OTHER sites in parallel.
+
+const SITE_SEARCHERS = {
+  amazon:     searchAmazon,
+  walmart:    searchWalmart,
+  bestbuy:    searchBestBuy,
+  superstore: searchSuperstore,
+};
 
 async function runComparison(product) {
-  const targetSite = OPPOSITE[product.site];
-  if (!targetSite) return []; // unsupported site
+  const query = buildSearchQuery(product.title);
+  if (!query) return [];
 
-  const query     = cleanQuery(product.title);
-  const searchUrl = buildSearchUrl(targetSite, query);
+  console.log(`[SaveMate] Searching for: "${query}" (from site: ${product.site})`);
 
-  console.log(`[SaveMate] Searching ${targetSite} for: "${query}"`);
+  // Search all sites EXCEPT the current one — in parallel
+  const otherSites = Object.keys(SITE_SEARCHERS).filter(s => s !== product.site);
 
-  const result = await fetchPriceViaTab(searchUrl, targetSite);
-  return result ? [result] : [];
+  const results = await Promise.allSettled(
+    otherSites.map(site => SITE_SEARCHERS[site](query))
+  );
+
+  return results
+    .map(r => r.status === 'fulfilled' ? r.value : null)
+    .filter(Boolean);
 }
 
 // ─── SAVINGS TRACKING ────────────────────────────────────────
@@ -219,9 +294,10 @@ async function runComparison(product) {
 async function recordPurchase(product) {
   const { lastComparison } = await chrome.storage.local.get('lastComparison');
   let saved = 0;
-  if (lastComparison?.prices?.length > 0) {
-    const diff = product.price - lastComparison.prices[0].price;
-    if (diff > 0) saved = diff;
+  if (lastComparison?.prices?.length && product.price) {
+    const lowestOther = Math.min(...lastComparison.prices.map(p => p.price).filter(Boolean));
+    const diff = product.price - lowestOther;
+    if (diff > 0) saved = diff; // User paid more than cheapest alternative
   }
 
   const record = {
@@ -244,54 +320,66 @@ async function recordPurchase(product) {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
+  // ── Product detected on a page ──────────────────────────────
   if (msg.type === 'PRODUCT_DETECTED') {
-    const tabId = sender.tab?.id;
-
-    // Immediately store the product with empty prices so popup
-    // can show the product name right away while search runs
+    const tabId  = sender.tab?.id;
     const tabKey = tabId ? `tab_${tabId}` : 'tab_unknown';
+
+    // Store immediately so popup can show product name right away
     const initialRecord = {
       product:    msg.product,
       prices:     [],
-      status:     'searching',   // ← popup can show "Searching..."
+      status:     'searching',
       timestamp:  Date.now(),
       productUrl: msg.product.url,
     };
     chrome.storage.local.set({ [tabKey]: initialRecord, lastComparison: initialRecord });
 
-    // Now fetch comparison in background
+    // Run all comparisons in background (parallel fetches)
     runComparison(msg.product).then(async prices => {
+      console.log(`[SaveMate] Found ${prices.length} comparison price(s)`);
       const record = { ...initialRecord, prices, status: 'done' };
       await chrome.storage.local.set({ [tabKey]: record, lastComparison: record });
 
-      // Update badge on active tab
-      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (activeTab?.id === tabId && prices.length > 0 && prices[0].price < msg.product.price) {
-        const diff = (msg.product.price - prices[0].price).toFixed(0);
-        chrome.action.setBadgeText({ text: `$${diff}` });
-        chrome.action.setBadgeBackgroundColor({ color: '#00b894' });
-      } else {
-        chrome.action.setBadgeText({ text: '' });
+      // Update badge if cheaper alternative found
+      if (msg.product.price && prices.length) {
+        const lowest = Math.min(...prices.map(p => p.price));
+        if (lowest < msg.product.price) {
+          const diff = (msg.product.price - lowest).toFixed(0);
+          chrome.action.setBadgeText({ text: `$${diff}`, tabId });
+          chrome.action.setBadgeBackgroundColor({ color: '#00b894', tabId });
+        } else {
+          chrome.action.setBadgeText({ text: '', tabId });
+        }
       }
+    }).catch(err => {
+      console.error('[SaveMate] runComparison error:', err);
+      const record = { ...initialRecord, prices: [], status: 'done' };
+      chrome.storage.local.set({ [tabKey]: record, lastComparison: record });
     });
 
     return true;
   }
 
+  // ── User confirmed purchase ─────────────────────────────────
   if (msg.type === 'PURCHASE_CONFIRMED') {
     recordPurchase(msg.product).then(result => sendResponse(result));
     return true;
   }
 
+  // ── Clear comparison when user navigates away ───────────────
   if (msg.type === 'CLEAR_COMPARISON') {
-    const tabId  = sender.tab?.id;
-    const keys   = ['lastComparison'];
-    if (tabId) keys.push(`tab_${tabId}`);
+    const tabId = sender.tab?.id;
+    const keys  = ['lastComparison'];
+    if (tabId) {
+      keys.push(`tab_${tabId}`);
+      chrome.action.setBadgeText({ text: '', tabId });
+    }
     chrome.storage.local.remove(keys);
-    chrome.action.setBadgeText({ text: '' });
     return true;
   }
 
+  // ── Popup asks for current comparison data ──────────────────
   if (msg.type === 'GET_COMPARISON') {
     chrome.tabs.query({ active: true, currentWindow: true }).then(async ([activeTab]) => {
       if (activeTab?.id) {
@@ -305,6 +393,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
+  // ── Popup asks for savings history ─────────────────────────
   if (msg.type === 'GET_HISTORY') {
     chrome.storage.local.get('history').then(({ history = [] }) => {
       const totalSaved = history.reduce((sum, r) => sum + (r.saved || 0), 0);
