@@ -1,3 +1,5 @@
+// ─── shopping.js — SaveMate Section ─────────────────────────
+// Exposes initShopping() to the global scope for popup.js router.
 
 function msg(type, data = {}) {
   return new Promise(resolve =>
@@ -7,25 +9,6 @@ function msg(type, data = {}) {
 
 function $(id) { return document.getElementById(id); }
 function fmt(p) { return p != null ? `$${parseFloat(p).toFixed(2)}` : '—'; }
-
-// ─── TABS ────────────────────────────────────────────────────
-
-function setupTabs() {
-  $('shoppingTab').addEventListener('click', () => {
-    $('shoppingTab').className         = 'tab active';
-    $('youtubeTab').className          = 'tab inactive';
-    $('shoppingSection').style.display = 'block';
-    $('youtubeSection').style.display  = 'none';
-    loadShoppingData();
-  });
-
-  $('youtubeTab').addEventListener('click', () => {
-    $('youtubeTab').className          = 'tab active';
-    $('shoppingTab').className         = 'tab inactive';
-    $('youtubeSection').style.display  = 'block';
-    $('shoppingSection').style.display = 'none';
-  });
-}
 
 // ─── TOTAL SAVED ─────────────────────────────────────────────
 
@@ -77,7 +60,6 @@ function renderPriceCards(product, prices, isSearching = false) {
     return;
   }
 
-  // Build full list: current site + comparison results
   const allSites = buildSitesList(product, prices);
   const validPrices = allSites.map(s => s.price).filter(p => p != null && p > 0);
   const lowestPrice = validPrices.length ? Math.min(...validPrices) : null;
@@ -102,7 +84,6 @@ function renderPriceCards(product, prices, isSearching = false) {
       ? 'color:#666;font-size:13px;font-weight:normal'
       : '';
 
-    // Confidence badge (only for comparison sites, not current)
     let confidenceBadge = '';
     if (!site.isCurrentSite && site.price != null && site.relevanceScore != null) {
       const pct = Math.round(site.relevanceScore * 100);
@@ -122,7 +103,6 @@ function renderPriceCards(product, prices, isSearching = false) {
       }
     }
 
-    // "No exact match" explanation tooltip
     const noMatchNote = (!site.isCurrentSite && site.price == null)
       ? `<span style="color:#556;font-size:10px;display:block;margin-top:3px">Product not found or filtered as inaccurate</span>`
       : '';
@@ -149,11 +129,6 @@ function renderPriceCards(product, prices, isSearching = false) {
   });
 }
 
-/**
- * Builds the unified price list for display.
- * Shows the current product's site first, then all comparison results.
- * Sites with no result show "Not found".
- */
 function buildSitesList(product, prices) {
   const ALL_SITES = {
     amazon:     'Amazon CA',
@@ -164,7 +139,6 @@ function buildSitesList(product, prices) {
 
   const result = [];
 
-  // Current site first (from the detected product)
   result.push({
     key:           product.site,
     name:          ALL_SITES[product.site] || product.site,
@@ -173,7 +147,6 @@ function buildSitesList(product, prices) {
     isCurrentSite: true,
   });
 
-  // All other sites
   const otherSites = Object.keys(ALL_SITES).filter(s => s !== product.site);
   for (const siteKey of otherSites) {
     const found = prices.find(p => p.siteKey === siteKey);
@@ -194,7 +167,6 @@ function buildSitesList(product, prices) {
 
 function pollUntilDone(product, attempts = 0) {
   if (attempts > 15) {
-    // Timed out — render with empty prices
     renderPriceCards(product, []);
     return;
   }
@@ -208,11 +180,6 @@ function pollUntilDone(product, attempts = 0) {
     }
   }, 1500);
 }
-
-document.getElementById('addSiteBtn').addEventListener('click', () => {
-  alert('Add site feature coming soon!');
-  // Future: open input/modal to add a new site to track
-});
 
 // ─── ANIMATION ───────────────────────────────────────────────
 
@@ -247,9 +214,11 @@ async function loadShoppingData() {
   }
 }
 
-// ─── INIT ────────────────────────────────────────────────────
+// ─── ADD SITE BUTTON ─────────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', () => {
-  setupTabs();
+function initShopping() {
+  document.getElementById('addSiteBtn').addEventListener('click', () => {
+    alert('Add site feature coming soon!');
+  });
   loadShoppingData();
-});
+}

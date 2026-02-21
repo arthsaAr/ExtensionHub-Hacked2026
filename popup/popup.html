@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SaveMate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">◈</span>
+      <span class="logo-text">ExtensionHub</span>
+    </div>
+    <div class="selector-wrap">
+      <select class="section-select" id="sectionSelect">
+        <option value="shoppingSection">🛒 Shopping</option>
+        <option value="youtubeSection">▶ YouTube</option>
+        <option value="summarizeSection">📄 Summarize</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SHOPPING SECTION — SaveMate
+       ══════════════════════════════════════════════════════════ -->
+  <div id="shoppingSection">
+
+    <!-- Total Saved Banner -->
+    <div class="savings-banner">
+      <div class="savings-banner__label">Total Saved</div>
+      <div class="savings-banner__amount" id="totalSaved">$0.00</div>
+      <div class="savings-banner__glow"></div>
+    </div>
+
+    <!-- Current Product -->
+    <div class="section">
+      <p class="section-label">Current Product</p>
+      <div class="product-card">
+        <div class="product-card__icon">🛒</div>
+        <div class="product-card__info">
+          <p class="product-card__name" id="productName">Open a product page to start</p>
+          <span class="product-card__site" id="currentSite">Tracking Amazon · Walmart · Best Buy · Superstore</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Price Comparison -->
+    <div class="section">
+      <p class="section-label">Price Comparison</p>
+      <div id="priceCardsContainer">
+        <div class="price-card">
+          <div>
+            <p class="site">Waiting for product…</p>
+            <h3>—</h3>
+          </div>
+        </div>
+      </div>
+      <p class="disclaimer">Prices from search results · click any card to verify</p>
+    </div>
+
+    <!-- Tracked Sites -->
+    <div class="section">
+      <p class="section-label">Tracked Sites</p>
+      <div class="tags" id="tagsContainer">
+        <span class="tag">Amazon CA</span>
+        <span class="tag">Walmart CA</span>
+        <span class="tag">Best Buy CA</span>
+        <span class="tag">Superstore</span>
+        <button class="tag tag--add" id="addSiteBtn">＋</button>
+      </div>
+    </div>
+
+  </div><!-- end shoppingSection -->
+
+  <!-- ══════════════════════════════════════════════════════════
+       YOUTUBE SECTION — LockInTube
+       ══════════════════════════════════════════════════════════ -->
+  <div id="youtubeSection" style="display:none;">
+
+    <div class="btn-div">
+      <button class="clear-search-btn" id="clearSearch">Clear Youtube Search Bar</button>
+    </div>
+
+    <div>
+      <h3 class="main-headers">Video Filters</h3>
+      <div class="checkboxes">
+        <label><input type="checkbox" class="filter-checkbox"> Short</label>
+        <label><input type="checkbox" class="filter-checkbox"> Medium</label>
+        <label><input type="checkbox" class="filter-checkbox"> Long</label>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="main-headers">Upload Date</h3>
+      <div class="date-checkboxes" id="uploadDateCheckboxes">
+        <label><input type="checkbox" class="filter-checkbox"> Today</label>
+        <label><input type="checkbox" class="filter-checkbox"> This Week</label>
+        <label><input type="checkbox" class="filter-checkbox"> This Month</label>
+        <label><input type="checkbox" class="filter-checkbox"> This Year</label>
+      </div>
+    </div>
+
+    <div class="filtering-div">
+      <h3 class="main-headers">Allowed Video Tags</h3>
+      <div class="input-div">
+        <input class="add-tag-input" type="text" id="tagInput" placeholder="Add a topic">
+        <button class="add-tag-btn" id="addTag">Add</button>
+      </div>
+      <ul class="tag-list" id="tagList"></ul>
+    </div>
+    <div class="cleaning-btns">
+      <button class="clean-btn" id="clearTagsBtn">Clear Tags</button>
+      <button class="clean-btn" id="reloadPage">Apply Tags</button>
+    </div>
+
+    <details class="advanced-details">
+      <summary>Click to show advanced options</summary>
+      <div class="filtering-div">
+        <h3 class="main-headers">Blocked Tags</h3>
+        <div class="input-div">
+          <input class="add-tag-input" type="text" id="blacklistTagInput" placeholder="Add a blocking tag">
+          <button class="add-tag-btn" id="blackListAddTag">Add</button>
+        </div>
+        <ul class="tag-list" id="blacklistTagList"></ul>
+      </div>
+      <div class="cleaning-btns">
+        <button class="clean-btn" id="b-clearTagsBtn">Clear Tags</button>
+        <button class="clean-btn" id="b-reloadPage">Apply Tags</button>
+      </div>
+    </details>
+
+  </div><!-- end youtubeSection -->
+
+  <!-- ══════════════════════════════════════════════════════════
+       SUMMARIZE SECTION
+       ══════════════════════════════════════════════════════════ -->
+  <div id="summarizeSection" style="display:none;">
+    <div class="container">
+      <p>🚧 To be implemented</p>
+    </div>
+  </div><!-- end summarizeSection -->
+
+</div><!-- end wrapper -->
+
+<!-- Section scripts first, router last -->
+<script src="shopping.js"></script>
+<script src="lockingtube.js"></script>
+<script src="summarize.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>
