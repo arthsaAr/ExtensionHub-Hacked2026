@@ -1,0 +1,58 @@
+{
+  "manifest_version": 3,
+  "name": "ExtensionHub",
+  "version": "2.0.0",
+  "description": "Price comparison, YouTube focus mode, and page summarizer — all in one.",
+
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+
+  "host_permissions": [
+    "<all_urls>"
+  ],
+
+  "background": {
+    "service_worker": "background/background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.amazon.ca/*",
+        "*://*.amazon.com/*",
+        "*://*.walmart.ca/*",
+        "*://*.bestbuy.ca/*",
+        "*://*.realcanadiansuperstore.ca/*",
+        "*://*.superstore.ca/*"
+      ],
+      "js": ["content/shopping-content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.youtube.com/*"],
+      "js": ["content/lockingtube-content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/LockInTube16.png",
+      "32": "icons/LockInTube32.png",
+      "48": "icons/icon.png",
+      "128": "icons/LockInTube128.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/LockInTube16.png",
+    "32": "icons/LockInTube32.png",
+    "48": "icons/icon.png",
+    "128": "icons/LockInTube128.png"
+  }
+}

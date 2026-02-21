@@ -1,0 +1,597 @@
+/* ═══════════════════════════════════════════════════════════
+   SAVEMATE UNIFIED — popup.css
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── 1. Reset & Base ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  width: 380px;
+  background: #0b1422;
+  font-family: 'Sora', 'Segoe UI', sans-serif;
+  color: #e8eaf0;
+  font-size: 13px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrapper {
+  padding: 20px 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ── 2. Header & Dropdown ─────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #1a2840;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-icon {
+  font-size: 20px;
+  color: #4c7fff;
+  line-height: 1;
+}
+
+.logo-text {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: #fff;
+}
+
+.selector-wrap {
+  position: relative;
+}
+
+.selector-wrap::after {
+  content: '▾';
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7a99;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.section-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #141f2e;
+  color: #e8eaf0;
+  border: 1px solid #253550;
+  border-radius: 8px;
+  padding: 7px 32px 7px 13px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.18s, background 0.18s;
+}
+
+.section-select:hover {
+  background: #1a2840;
+  border-color: #3a5580;
+}
+
+.section-select:focus {
+  border-color: #2f6df6;
+  box-shadow: 0 0 0 3px rgba(47, 109, 246, 0.15);
+}
+
+/* ════════════════════════════════════════════════════════════
+   3. SHOPPING — SaveMate
+   ════════════════════════════════════════════════════════════ */
+
+/* Savings Banner */
+.savings-banner {
+  position: relative;
+  background: linear-gradient(135deg, #0a3820 0%, #0c4a2a 55%, #0d5532 100%);
+  border: 1px solid #1a6b3c;
+  border-radius: 14px;
+  padding: 18px 20px;
+  overflow: hidden;
+}
+
+.savings-banner__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #4dd68a;
+  margin-bottom: 6px;
+}
+
+.savings-banner__amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.8px;
+  line-height: 1;
+}
+
+.savings-banner__glow {
+  position: absolute;
+  right: -24px;
+  top: -24px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 200, 130, 0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Section */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-label {
+  margin: 10px 0 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #3d5070;
+}
+
+/* Product Card */
+.product-card {
+  background: #111c2c;
+  border: 1px solid #1e2d42;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.product-card__icon {
+  font-size: 20px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+
+.product-card__info { min-width: 0; }
+
+.product-card__name {
+  margin: 0 0 5px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #dde3f0;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-card__site {
+  font-size: 11px;
+  color: #4c9fff;
+  font-weight: 500;
+}
+
+/* Price Cards */
+.price-card {
+  background: #111c2c;
+  border: 1px solid #1e2d42;
+  border-radius: 12px;
+  padding: 13px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: border-color 0.18s, background 0.18s;
+  margin-bottom: 8px;
+}
+
+.price-card:last-child { margin-bottom: 0; }
+
+.price-card:hover {
+  background: #152030;
+  border-color: #2a3f5e;
+}
+
+.price-card.best {
+  background: #0e1f3a;
+  border: 1px solid #2f6df6;
+  box-shadow: 0 0 0 1px rgba(47, 109, 246, 0.12) inset,
+              0 4px 16px rgba(47, 109, 246, 0.08);
+}
+
+.price-card.best:hover { background: #112444; }
+
+.price-card h3 {
+  margin: 3px 0 5px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: #fff;
+}
+
+/* Site label & badge */
+.site {
+  margin: 0 0 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6a80a8;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.badge {
+  display: inline-block;
+  background: #2f6df6;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  color: #fff;
+}
+
+/* Stock pill */
+.stock {
+  display: inline-block;
+  background: rgba(0, 184, 148, 0.13);
+  color: #00c98a;
+  border: 1px solid rgba(0, 184, 148, 0.25);
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Tracked sites tags */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.tag {
+  background: #111c2c;
+  border: 1px solid #1e2d42;
+  color: #6a80a8;
+  padding: 5px 11px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: default;
+}
+
+.tag--add {
+  cursor: pointer;
+  background: rgba(0, 184, 148, 0.10);
+  border-color: rgba(0, 184, 148, 0.28);
+  color: #00c98a;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 3px 11px;
+  transition: all 0.18s ease;
+}
+
+.tag--add:hover {
+  background: rgba(0, 184, 148, 0.22);
+  border-color: #00c98a;
+  color: #fff;
+}
+
+/* Disclaimer */
+.disclaimer {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: #2e4060;
+  text-align: right;
+  letter-spacing: 0.01em;
+}
+
+#shoppingSection .section:first-child .section-label {
+  margin-top: 0;
+}
+
+#youtubeSection .btn-div + .yt-card .main-headers,
+#youtubeSection > .yt-card:first-of-type .main-headers,
+#youtubeSection > *:first-child .main-headers {
+  margin-top: 0;
+}
+  from { opacity: 0.2; }
+  to   { opacity: 1; }
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   4. YOUTUBE — LockInTube
+   Scoped to #youtubeSection
+   ════════════════════════════════════════════════════════════ */
+
+#youtubeSection {
+  font-family: 'Sora', 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 4px;
+}
+
+#youtubeSection .main-headers {
+  color: #3d5070;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 14px 0 0;
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* ── Clear search button ──────────────────────────────────── */
+#youtubeSection .btn-div {
+  display: flex;
+}
+
+#youtubeSection .clear-search-btn {
+  background: #b03030;
+  color: #fff;
+  border: none;
+  padding: 13px 18px;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 11px;
+  transition: background 0.18s;
+  width: 100%;
+  letter-spacing: 0.01em;
+}
+
+#youtubeSection .clear-search-btn:hover {
+  background: #922626;
+}
+
+/* ── Checkbox groups — wrapped in a card via HTML ─────────── */
+#youtubeSection .checkboxes {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  font-size: 13px;
+  color: #b0bcd8;
+  padding: 4px 0 2px;
+}
+
+#youtubeSection .date-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  font-size: 13px;
+  color: #b0bcd8;
+  padding: 4px 0 2px;
+}
+
+#youtubeSection .date-checkboxes label,
+#youtubeSection .checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+#youtubeSection .filter-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 17px;
+  height: 17px;
+  min-width: 17px;
+  border: 2px solid #2a3f5e;
+  border-radius: 5px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+#youtubeSection .filter-checkbox:hover {
+  border-color: #2f6df6;
+  transform: scale(1.1);
+}
+
+#youtubeSection .filter-checkbox:checked {
+  background-color: #2f6df6;
+  border-color: #2f6df6;
+}
+
+#youtubeSection .filter-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* ── Checkbox card wrapper (applied in HTML) ──────────────── */
+#youtubeSection .yt-card {
+  background: #111c2c;
+  border: 1px solid #1e2d42;
+  border-radius: 12px;
+  padding: 16px 18px 18px;
+}
+
+/* ── Tag filter cards ─────────────────────────────────────── */
+#youtubeSection .filtering-div {
+  background: #111c2c;
+  border: 1px solid #1e2d42;
+  border-radius: 12px;
+  padding: 16px 16px 16px;
+}
+
+#youtubeSection .input-div {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+#youtubeSection .add-tag-input {
+  flex: 1;
+  border: 1px solid #253550;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #0b1422;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
+  color: #e8eaf0;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+#youtubeSection .add-tag-input:focus {
+  border-color: #2f6df6;
+  box-shadow: 0 0 0 3px rgba(47, 109, 246, 0.12);
+}
+
+#youtubeSection .add-tag-input::placeholder {
+  color: #3d5070;
+}
+
+#youtubeSection .add-tag-btn {
+  background: #2f6df6;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.18s;
+  white-space: nowrap;
+}
+
+#youtubeSection .add-tag-btn:hover {
+  background: #1a57d6;
+}
+
+/* Tag list */
+#youtubeSection .tag-list {
+  list-style: decimal;
+  padding: 0 0 0 20px;
+  margin: 12px 0 0;
+}
+
+#youtubeSection .tag-list li {
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #b0bcd8;
+  background: #0b1422;
+  border: 1px solid #1e2d42;
+  border-radius: 7px;
+  line-height: 1.4;
+}
+
+/* ── Action buttons ───────────────────────────────────────── */
+#youtubeSection .cleaning-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+#youtubeSection .clean-btn {
+  flex: 1;
+  background: #111c2c;
+  color: #8898bb;
+  border: 1px solid #1e2d42;
+  padding: 9px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 9px;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+}
+
+#youtubeSection .clean-btn:hover {
+  background: #1a2840;
+  border-color: #2a3f5e;
+  color: #d0d8f0;
+}
+
+/* ── Advanced details ─────────────────────────────────────── */
+#youtubeSection .advanced-details {
+  background: #111c2c;
+  border: 1px solid #1e2d42;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+#youtubeSection .advanced-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+  color: #4a5a78;
+  padding: 2px 0;
+  outline: none;
+  transition: color 0.15s;
+  user-select: none;
+  list-style: none;
+}
+
+#youtubeSection .advanced-details summary::-webkit-details-marker {
+  display: none;
+}
+
+#youtubeSection .advanced-details summary::before {
+  content: '▸  ';
+  color: #3d5070;
+  font-size: 10px;
+  transition: color 0.15s;
+}
+
+#youtubeSection .advanced-details[open] summary::before {
+  content: '▾  ';
+  color: #6b7a99;
+}
+
+#youtubeSection .advanced-details summary:hover {
+  color: #8898bb;
+}
+
+#youtubeSection .advanced-details[open] summary {
+  color: #a0aecc;
+  margin-bottom: 16px;
+}
+
+#summarizeSection .container {
+  background: #111c2c;
+  border: 1px solid #1e2d42;
+  border-radius: 14px;
+  padding: 48px 24px;
+  text-align: center;
+  font-size: 14px;
+  color: #3d5070;
+}
