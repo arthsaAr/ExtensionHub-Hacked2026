@@ -1,61 +1,140 @@
 // ============================================================
-// SaveMate — content.js (Amazon + Walmart)
-// Extracts product title + price from current page.
-// Title is pulled from the URL slug (most reliable).
-// Price is pulled from the DOM.
+// SaveMate — content.js
+// Detects product + price on Amazon CA, Walmart CA,
+// Best Buy CA, and Superstore CA.
+// Title extracted from URL slug (most reliable, no React delay).
+// Price extracted from DOM with multiple fallback selectors.
 // ============================================================
 
 const hostname = window.location.hostname;
 
 const CURRENT_SITE =
-  hostname.includes('amazon')  ? 'amazon'  :
-  hostname.includes('walmart') ? 'walmart' :
+  hostname.includes('amazon')              ? 'amazon'     :
+  hostname.includes('walmart')             ? 'walmart'    :
+  hostname.includes('bestbuy')             ? 'bestbuy'    :
+  hostname.includes('superstore') ||
+  hostname.includes('realcanadiansuperstore') ? 'superstore' :
   null;
 
-if (!CURRENT_SITE) throw new Error('[SaveMate] Not a supported site.');
+if (!CURRENT_SITE) {
+  // Silently exit on unsupported sites
+  throw new Error('[SaveMate] Not a supported site.');
+}
+
+// ─── IS THIS A PRODUCT PAGE? ─────────────────────────────────
+
+function isProductPage() {
+  const path = window.location.pathname;
+  if (CURRENT_SITE === 'amazon')     return /\/dp\/[A-Z0-9]{10}/i.test(path);
+  if (CURRENT_SITE === 'walmart')    return path.includes('/ip/');
+  if (CURRENT_SITE === 'bestbuy')    return path.includes('/en-ca/product/') || /\/\d+\.aspx/.test(path);
+  if (CURRENT_SITE === 'superstore') return path.includes('/p/') || path.includes('/product/');
+  return false;
+}
 
 // ─── TITLE FROM URL ──────────────────────────────────────────
-// Far more reliable than DOM — always available immediately,
-// no React rendering delay, no breadcrumb confusion.
+// URL slug is always available immediately — no JS render wait.
 
 function getTitleFromUrl() {
   const path = window.location.pathname;
   try {
     if (CURRENT_SITE === 'walmart') {
-      // /en/ip/Mainstays-Montclair-5-Piece-Dining-Set/77UDZY2DVYAV
+      // /en/ip/Product-Name-Here/ID  OR  /ip/Product-Name/ID
       const parts = path.split('/');
       const ipIdx = parts.indexOf('ip');
       if (ipIdx >= 0 && parts[ipIdx + 1]) {
         return parts[ipIdx + 1].replace(/-/g, ' ').trim();
       }
     }
+
     if (CURRENT_SITE === 'amazon') {
-      // /PET-Jersey-Medium-Winnipeg-Jets/dp/B0889B9HMM
+      // /Product-Name-Here/dp/ASIN  OR  /dp/ASIN (no name)
       const parts = path.split('/').filter(Boolean);
       const dpIdx = parts.indexOf('dp');
       if (dpIdx > 0 && parts[dpIdx - 1].includes('-')) {
         return parts[dpIdx - 1].replace(/-/g, ' ').trim();
       }
+      // Fallback: try page <title> tag (usually "Product Name : Amazon.ca")
+      const titleEl = document.querySelector('title');
+      if (titleEl) {
+        return titleEl.textContent.split(':')[0].split('|')[0].trim();
+      }
+    }
+
+    if (CURRENT_SITE === 'bestbuy') {
+      // /en-ca/product/brand-product-name/12345.aspx
+      const parts = path.split('/').filter(Boolean);
+      // Find the segment before the numeric ID segment
+      const productSegIdx = parts.findIndex(p => /^\d+\.aspx$/.test(p) || /^\d+$/.test(p));
+      if (productSegIdx > 0) {
+        return parts[productSegIdx - 1].replace(/-/g, ' ').trim();
+      }
+    }
+
+    if (CURRENT_SITE === 'superstore') {
+      // /p/Product-Name/ID  OR  /product/Product-Name
+      const parts = path.split('/').filter(Boolean);
+      const pIdx = parts.findIndex(p => p === 'p' || p === 'product');
+      if (pIdx >= 0 && parts[pIdx + 1]) {
+        return parts[pIdx + 1].replace(/-/g, ' ').trim();
+      }
     }
   } catch (_) {}
+
+  // Universal fallback: page <title>
+  const titleEl = document.querySelector('title');
+  if (titleEl) {
+    return titleEl.textContent.split(':')[0].split('|')[0].split('-')[0].trim();
+  }
   return null;
+}
+
+// ─── TITLE CLEANUP ───────────────────────────────────────────
+// Remove junk like sizes, colors, variant codes from the slug
+// so the cross-site search finds the right product type.
+
+function cleanTitle(raw) {
+  if (!raw) return null;
+  return raw
+    // Remove common noise patterns
+    .replace(/\b(with|the|a|an|for|set of|pack of|lot of)\b/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .substring(0, 100);
 }
 
 // ─── PRICE FROM DOM ──────────────────────────────────────────
 
 const PRICE_SELECTORS = {
   amazon: [
-    'span.a-price .a-offscreen',
+    'span.a-price .a-offscreen',          // Main price
     '#priceblock_ourprice',
     '#priceblock_dealprice',
     '#price_inside_buybox',
+    '.priceToPay .a-offscreen',
+    '#corePrice_feature_div .a-price .a-offscreen',
     '.a-price .a-offscreen',
   ],
   walmart: [
+    '[itemprop="price"]',                 // Structured data — most reliable
     '[data-automation="buybox-price"]',
-    'span[itemprop="price"]',
-    '.price-characteristic',
     '[data-testid="price-wrap"] span',
+    '.price-characteristic',
+    'span.price-group',
+  ],
+  bestbuy: [
+    '[data-automation="product-price"]',
+    '.priceValue',
+    '.sr-only + span',
+    '[class*="price"] [class*="value"]',
+    '[itemprop="price"]',
+  ],
+  superstore: [
+    '[data-code="price"]',
+    '.price--sale',
+    '.price',
+    '[itemprop="price"]',
+    '[class*="Price"]',
   ],
 };
 
@@ -64,8 +143,11 @@ function extractText(selectors) {
     try {
       const el = document.querySelector(sel);
       if (el) {
-        const t = el.innerText?.trim() || el.getAttribute('content')?.trim();
-        if (t) return t;
+        const t =
+          el.getAttribute('content') ||   // itemprop="price" uses content attr
+          el.innerText?.trim()          ||
+          el.textContent?.trim();
+        if (t && t.length > 0 && t.length < 30) return t;
       }
     } catch (_) {}
   }
@@ -75,79 +157,76 @@ function extractText(selectors) {
 function parsePrice(raw) {
   if (!raw) return null;
   const m = raw.replace(/,/g, '').match(/\d+\.?\d*/);
-  return m ? parseFloat(m[0]) : null;
+  if (!m) return null;
+  const p = parseFloat(m[0]);
+  return (p > 0 && p < 100000) ? p : null;
 }
 
-function getProductData() {
-  const title = getTitleFromUrl();
-  const raw   = extractText(PRICE_SELECTORS[CURRENT_SITE]);
-  const price = parsePrice(raw);
+// ─── MAIN DETECTION ──────────────────────────────────────────
 
-  if (!title || !price) return null;
+function getProductData() {
+  if (!isProductPage()) return null;
+
+  const rawTitle = getTitleFromUrl();
+  const title    = cleanTitle(rawTitle);
+  const rawPrice = extractText(PRICE_SELECTORS[CURRENT_SITE]);
+  const price    = parsePrice(rawPrice);
+
+  console.log(`[SaveMate] Site: ${CURRENT_SITE} | Title: "${title}" | Price: ${price}`);
+
+  if (!title) return null;      // Need at least a title
+  // Price can be null — we still want to show comparison prices
 
   return {
-    title: title.substring(0, 120),
-    price,
-    site:  CURRENT_SITE,
-    url:   window.location.href,
+    title:  title.substring(0, 120),
+    price:  price,
+    site:   CURRENT_SITE,
+    url:    window.location.href,
   };
 }
 
 // ─── SPA NAVIGATION WATCHER ──────────────────────────────────
-// Amazon and Walmart are SPAs — URL changes without page reload.
 
-let lastUrl = window.location.href;
-let timer   = null;
-let popupShown = false;
+let lastUrl  = '';
+let lastKey  = '';
+let initTimer = null;
 
 function getProductKey() {
   const path = window.location.pathname;
-  if (CURRENT_SITE === 'amazon') {
-    const m = path.match(/\/dp\/([A-Z0-9]{10})/);
-    return m ? m[1] : path;
-  }
-  if (CURRENT_SITE === 'walmart') {
-    const parts = path.split('/').filter(Boolean);
-    return parts[parts.length - 1]; // last segment = product ID
-  }
+  if (CURRENT_SITE === 'amazon')  { const m = path.match(/\/dp\/([A-Z0-9]{10})/i); return m ? m[1] : path; }
+  if (CURRENT_SITE === 'walmart') { const parts = path.split('/').filter(Boolean); return parts[parts.length - 1]; }
   return path;
 }
-
-let lastKey = getProductKey();
 
 setInterval(() => {
   const currentUrl = window.location.href;
   const currentKey = getProductKey();
 
-  if (currentUrl !== lastUrl && currentKey !== lastKey) {
+  if (currentUrl !== lastUrl) {
     lastUrl = currentUrl;
-    lastKey = currentKey;
 
-    // Clear stale data and reset
-    chrome.runtime.sendMessage({ type: 'CLEAR_COMPARISON' });
-    if (timer) { clearTimeout(timer); timer = null; }
-    popupShown = false;
-
-    // Re-init after page renders
-    setTimeout(init, 2000);
+    if (currentKey !== lastKey) {
+      lastKey = currentKey;
+      chrome.runtime.sendMessage({ type: 'CLEAR_COMPARISON' });
+      if (initTimer) clearTimeout(initTimer);
+      initTimer = setTimeout(init, 2000);
+    }
   }
-}, 500);
+}, 800);
 
-// ─── TIMER + BUY POPUP ───────────────────────────────────────
+// ─── BUY POPUP (3.5 min timer) ───────────────────────────────
 
+let buyTimer   = null;
+let popupShown = false;
 const DELAY_MS = 3.5 * 60 * 1000;
 
 function startTimer(product) {
-  if (timer) clearTimeout(timer);
+  if (buyTimer) clearTimeout(buyTimer);
   popupShown = false;
-  timer = setTimeout(() => {
+  buyTimer = setTimeout(() => {
     if (!document.hidden) showBuyPopup(product);
   }, DELAY_MS);
 }
-
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && timer) { clearTimeout(timer); timer = null; }
-});
 
 function injectStyles() {
   if (document.getElementById('sm-styles')) return;
@@ -158,7 +237,7 @@ function injectStyles() {
     #sm-popup {
       position:fixed;bottom:24px;right:24px;z-index:999999;
       background:#fff;border:2px solid #0071dc;border-radius:14px;
-      padding:18px 20px;box-shadow:0 8px 30px rgba(0,0,0,.15);
+      padding:18px 20px;box-shadow:0 8px 30px rgba(0,0,0,.18);
       font-family:sans-serif;width:280px;animation:sm-in .3s ease;
     }
     #sm-popup h4{margin:0 0 4px;font-size:15px;color:#111}
@@ -173,16 +252,15 @@ function injectStyles() {
 }
 
 function showBuyPopup(product) {
-  if (popupShown) return;
+  if (popupShown || !product?.price) return;
   popupShown = true;
   injectStyles();
   document.getElementById('sm-popup')?.remove();
-
   const popup = document.createElement('div');
   popup.id = 'sm-popup';
   popup.innerHTML = `
     <h4>🛍️ Did you buy it?</h4>
-    <p>${product.title.substring(0, 55)}... at $${product.price.toFixed(2)}</p>
+    <p>${product.title.substring(0, 55)}... ${product.price ? 'at $' + product.price.toFixed(2) : ''}</p>
     <div class="sm-btn-row">
       <button class="sm-btn-yes" id="sm-yes">✅ Yes!</button>
       <button class="sm-btn-no"  id="sm-no">Not yet</button>
@@ -190,7 +268,6 @@ function showBuyPopup(product) {
     <button class="sm-dismiss" id="sm-dismiss">Dismiss</button>
   `;
   document.body.appendChild(popup);
-
   document.getElementById('sm-yes').onclick = () => {
     popup.remove();
     chrome.runtime.sendMessage({ type: 'PURCHASE_CONFIRMED', product }, (res) => {
@@ -211,9 +288,14 @@ function showBuyPopup(product) {
 
 function init() {
   const product = getProductData();
-  if (!product) return;
+  if (!product) {
+    console.log('[SaveMate] Not a product page, skipping.');
+    return;
+  }
+  console.log('[SaveMate] Product detected:', product);
   chrome.runtime.sendMessage({ type: 'PRODUCT_DETECTED', product });
-  startTimer(product);
+  if (product.price) startTimer(product);
 }
 
-setTimeout(init, 1500);
+// Wait for page to fully render before extracting
+setTimeout(init, 1800);

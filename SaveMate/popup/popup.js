@@ -1,10 +1,11 @@
 // ============================================================
 // SaveMate — popup/popup.js
-// Wired to match your friend's exact HTML IDs and classes.
 // ============================================================
 
 function msg(type, data = {}) {
-  return new Promise(resolve => chrome.runtime.sendMessage({ type, ...data }, resolve));
+  return new Promise(resolve =>
+    chrome.runtime.sendMessage({ type, ...data }, resolve)
+  );
 }
 
 function $(id) { return document.getElementById(id); }
@@ -14,18 +15,18 @@ function fmt(p) { return p != null ? `$${parseFloat(p).toFixed(2)}` : '—'; }
 
 function setupTabs() {
   $('shoppingTab').addEventListener('click', () => {
-    $('shoppingTab').className          = 'tab active';
-    $('youtubeTab').className           = 'tab inactive';
-    $('shoppingSection').style.display  = 'block';
-    $('youtubeSection').style.display   = 'none';
+    $('shoppingTab').className         = 'tab active';
+    $('youtubeTab').className          = 'tab inactive';
+    $('shoppingSection').style.display = 'block';
+    $('youtubeSection').style.display  = 'none';
     loadShoppingData();
   });
 
   $('youtubeTab').addEventListener('click', () => {
-    $('youtubeTab').className           = 'tab active';
-    $('shoppingTab').className          = 'tab inactive';
-    $('youtubeSection').style.display   = 'block';
-    $('shoppingSection').style.display  = 'none';
+    $('youtubeTab').className          = 'tab active';
+    $('shoppingTab').className         = 'tab inactive';
+    $('youtubeSection').style.display  = 'block';
+    $('shoppingSection').style.display = 'none';
   });
 }
 
@@ -39,125 +40,172 @@ async function renderTotalSaved() {
 // ─── CURRENT PRODUCT NAME ────────────────────────────────────
 
 function renderProductName(product) {
-  $('productName').textContent = product
-    ? product.title
-    : 'Open a product page to start';
+  if (product) {
+    $('productName').textContent = product.title;
+    const siteNames = { amazon: 'Amazon CA', walmart: 'Walmart CA', bestbuy: 'Best Buy CA', superstore: 'Superstore' };
+    const currentSiteName = siteNames[product.site] || product.site;
+    $('currentSite').textContent = `Detected on ${currentSiteName}${product.price ? ' · $' + product.price.toFixed(2) : ''}`;
+  } else {
+    $('productName').textContent = 'Open a product page to start';
+    $('currentSite').textContent = 'Tracking Amazon · Walmart · Best Buy · Superstore';
+  }
 }
 
 // ─── PRICE CARDS ─────────────────────────────────────────────
-// Clears existing cards and injects real ones from backend data.
 
-function renderPriceCards(product, prices) {
-  // Remove placeholder + any previously injected cards
-  document.querySelectorAll('.price-card').forEach(el => el.remove());
-
-  // The "Prices" section-title is the anchor point
-  const priceTitle = [...document.querySelectorAll('.section-title')]
-    .find(el => el.textContent.trim() === 'Prices');
-
-  if (!priceTitle) return;
+function renderPriceCards(product, prices, isSearching = false) {
+  const container = $('priceCardsContainer');
+  container.innerHTML = '';
 
   if (!product) {
-    const empty = document.createElement('div');
-    empty.className = 'price-card';
-    empty.innerHTML = `<div><p class="site">No product detected on this page</p><h3>—</h3></div>`;
-    priceTitle.insertAdjacentElement('afterend', empty);
+    container.innerHTML = `
+      <div class="price-card">
+        <div>
+          <p class="site">No product detected on this page</p>
+          <h3 style="color:#666;font-size:14px">Navigate to a product page on Amazon, Walmart, Best Buy, or Superstore</h3>
+        </div>
+      </div>`;
     return;
   }
 
-  // Build unified list: current site + the 2 comparison results
+  if (isSearching) {
+    container.innerHTML = `
+      <div class="price-card" id="sm-searching-card">
+        <div style="width:100%;text-align:center;padding:8px 0">
+          <p class="site" style="margin-bottom:8px">🔍 Searching Amazon, Walmart, Best Buy, Superstore...</p>
+          <div style="height:3px;background:linear-gradient(90deg,#2f6df6,#00b894);border-radius:2px;animation:sm-pulse 1.2s ease-in-out infinite alternate"></div>
+        </div>
+      </div>`;
+    injectPulseStyle();
+    return;
+  }
+
+  // Build full list: current site + comparison results
   const allSites = buildSitesList(product, prices);
-  const validPrices = allSites.map(s => s.price).filter(p => p != null);
+  const validPrices = allSites.map(s => s.price).filter(p => p != null && p > 0);
   const lowestPrice = validPrices.length ? Math.min(...validPrices) : null;
 
-  // Insert in reverse so order comes out correct (insertAdjacentElement afterend reverses)
-  [...allSites].reverse().forEach(site => {
-    const isBest     = lowestPrice != null && site.price === lowestPrice;
-    const isClickable = !!site.url;
-    const card        = document.createElement('div');
-    card.className    = isBest ? 'price-card best' : 'price-card';
+  allSites.forEach(site => {
+    const isBest    = lowestPrice != null && site.price != null && site.price === lowestPrice;
+    const card      = document.createElement('div');
+    card.className  = isBest ? 'price-card best' : 'price-card';
 
-    // Make whole card clickable if we have a URL
-    if (isClickable) {
+    if (site.url) {
       card.style.cursor = 'pointer';
-      card.title        = 'Click to open this product';
-      card.addEventListener('click', () => {
-        chrome.tabs.create({ url: site.url });
-      });
+      card.title        = `Click to open on ${site.name}`;
+      card.addEventListener('click', () => chrome.tabs.create({ url: site.url }));
+    }
+
+    const priceDisplay = site.price != null
+      ? fmt(site.price)
+      : (site.isCurrentSite ? 'Current site' : 'Not found');
+
+    const priceColor = site.price == null ? 'color:#666;font-size:13px;font-weight:normal' : '';
+
+    let savings = '';
+    if (!site.isCurrentSite && site.price != null && product.price != null) {
+      const diff = product.price - site.price;
+      if (diff > 0.01) {
+        savings = `<span style="color:#00b894;font-size:11px;font-weight:bold">Save ${fmt(diff)}</span>`;
+      } else if (diff < -0.01) {
+        savings = `<span style="color:#e74c3c;font-size:11px">+${fmt(-diff)} more</span>`;
+      } else {
+        savings = `<span style="color:#aaa;font-size:11px">Same price</span>`;
+      }
     }
 
     card.innerHTML = `
       <div>
         <p class="site">
           ${site.name}
-          ${isBest ? '<span class="badge">Lowest</span>' : ''}
+          ${site.isCurrentSite ? '<span class="badge" style="background:#555">You\'re here</span>' : ''}
+          ${isBest            ? '<span class="badge">Lowest ✓</span>'                              : ''}
         </p>
-        <h3 style="${site.price == null ? 'color:#666;font-size:14px' : ''}">${site.price != null ? fmt(site.price) : 'Not found'}</h3>
+        <h3 style="${priceColor}">${priceDisplay}</h3>
+        ${savings}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
         ${site.price != null ? '<span class="stock">In Stock</span>' : ''}
-        ${isClickable ? `<span style="color:#4c6fff;font-size:11px;font-weight:bold">View →</span>` : ''}
+        ${site.url ? `<span style="color:#4c6fff;font-size:11px;font-weight:bold">View →</span>` : ''}
       </div>
     `;
 
-    priceTitle.insertAdjacentElement('afterend', card);
+    container.appendChild(card);
   });
 }
 
 /**
- * Builds the comparison list — EXCLUDES the current site,
- * only shows the other 3 with fetched prices.
- * If a site had no result, it shows as "Not found".
+ * Builds the unified price list for display.
+ * Shows the current product's site first, then all comparison results.
+ * Sites with no result show "Not found".
  */
 function buildSitesList(product, prices) {
-  const nameMap = {
-    amazon:     'Amazon',
-    walmart:    'Walmart',
-    bestbuy:    'Best Buy',
+  const ALL_SITES = {
+    amazon:     'Amazon CA',
+    walmart:    'Walmart CA',
+    bestbuy:    'Best Buy CA',
     superstore: 'Superstore',
   };
 
-  // Comparison results from background.js (already excludes current site)
-  const result = prices.map(p => ({
-    key:   p.siteKey,
-    name:  p.siteName,
-    price: p.price,
-    url:   p.url,
-  }));
+  const result = [];
 
-  // If the opposite site had no result, show it as "Not found"
-  const opposite = product.site === 'amazon' ? 'walmart' : 'amazon';
-  if (!result.find(r => r.key === opposite)) {
-    result.push({ key: opposite, name: nameMap[opposite], price: null, url: null });
+  // Current site first (from the detected product)
+  result.push({
+    key:           product.site,
+    name:          ALL_SITES[product.site] || product.site,
+    price:         product.price,
+    url:           product.url,
+    isCurrentSite: true,
+  });
+
+  // All other sites
+  const otherSites = Object.keys(ALL_SITES).filter(s => s !== product.site);
+  for (const siteKey of otherSites) {
+    const found = prices.find(p => p.siteKey === siteKey);
+    result.push({
+      key:           siteKey,
+      name:          ALL_SITES[siteKey],
+      price:         found?.price ?? null,
+      url:           found?.url   ?? null,
+      isCurrentSite: false,
+    });
   }
 
   return result;
 }
 
-// ─── TAGS ────────────────────────────────────────────────────
+// ─── POLLING ─────────────────────────────────────────────────
 
-function renderTags() {
-  $('tagsContainer').innerHTML = ['Amazon', 'Walmart']
-    .map(t => `<span class="tag">${t}</span>`)
-    .join('');
+function pollUntilDone(product, attempts = 0) {
+  if (attempts > 15) {
+    // Timed out — render with empty prices
+    renderPriceCards(product, []);
+    return;
+  }
+  setTimeout(async () => {
+    const data = await msg('GET_COMPARISON');
+    if (data?.status === 'done') {
+      renderPriceCards(data.product, data.prices);
+    } else {
+      pollUntilDone(data?.product || product, attempts + 1);
+    }
+  }, 1500);
 }
 
-// ─── ADD SITE (your feature, coming later) ───────────────────
+// ─── ANIMATION ───────────────────────────────────────────────
 
-function setupAddSite() {
-  $('addSiteBtn').addEventListener('click', () => {
-    const val = $('newSite').value.trim();
-    if (!val) return;
-    alert('Custom site tracking coming soon!');
-    $('newSite').value = '';
-  });
+function injectPulseStyle() {
+  if (document.getElementById('sm-pulse-style')) return;
+  const s = document.createElement('style');
+  s.id = 'sm-pulse-style';
+  s.textContent = '@keyframes sm-pulse{from{opacity:.2}to{opacity:1}}';
+  document.head.appendChild(s);
 }
 
 // ─── MAIN LOAD ───────────────────────────────────────────────
 
 async function loadShoppingData() {
   renderTotalSaved();
-  renderTags();
 
   const data = await msg('GET_COMPARISON');
 
@@ -169,58 +217,17 @@ async function loadShoppingData() {
 
   renderProductName(data.product);
 
-  // Still searching — show spinner and poll until done
   if (data.status === 'searching') {
-    renderSearchingState();
-    pollUntilDone();
-    return;
+    renderPriceCards(data.product, [], true);
+    pollUntilDone(data.product);
+  } else {
+    renderPriceCards(data.product, data.prices);
   }
-
-  renderPriceCards(data.product, data.prices);
-}
-
-// Shows a "Searching..." card while background tab fetches prices
-function renderSearchingState() {
-  document.querySelectorAll('.price-card').forEach(el => el.remove());
-  const priceTitle = [...document.querySelectorAll('.section-title')]
-    .find(el => el.textContent.trim() === 'Prices');
-  if (!priceTitle) return;
-
-  const card = document.createElement('div');
-  card.className = 'price-card';
-  card.id = 'sm-searching-card';
-  card.innerHTML = `
-    <div style="width:100%;text-align:center;padding:4px 0">
-      <p class="site" style="margin-bottom:8px">🔍 Searching other sites...</p>
-      <div style="height:3px;background:linear-gradient(90deg,#2f6df6,#00b894);border-radius:2px;animation:sm-pulse 1.2s ease-in-out infinite alternate"></div>
-    </div>
-  `;
-  if (!document.getElementById('sm-pulse-style')) {
-    const s = document.createElement('style');
-    s.id = 'sm-pulse-style';
-    s.textContent = '@keyframes sm-pulse{from{opacity:.2}to{opacity:1}}';
-    document.head.appendChild(s);
-  }
-  priceTitle.insertAdjacentElement('afterend', card);
-}
-
-// Poll every 1.5s until background finishes fetching
-function pollUntilDone(attempts = 0) {
-  if (attempts > 12) return; // give up after ~18 seconds
-  setTimeout(async () => {
-    const data = await msg('GET_COMPARISON');
-    if (data?.status === 'done') {
-      renderPriceCards(data.product, data.prices);
-    } else {
-      pollUntilDone(attempts + 1);
-    }
-  }, 1500);
 }
 
 // ─── INIT ────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
   setupTabs();
-  setupAddSite();
   loadShoppingData();
 });
