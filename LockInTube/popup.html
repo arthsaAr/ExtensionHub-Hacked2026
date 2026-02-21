@@ -40,7 +40,24 @@
     <button class="clean-btn" id="clearTagsBtn">Clear Tags</button>
     <button class="clean-btn" id="reloadPage">Apply Tags</button>
   </div>
-  
+
+  <details class="advanced-details">
+    <summary> Click to show advanced options </summary>
+
+    <div class="filtering-div">
+      <h3 class="main-headers">Blocked Tags</h3>
+      <div class="input-div">
+        <input class="add-tag-input" type="text" id="blacklistTagInput" placeholder="Add a blocking tag">
+        <button class="add-tag-btn" id="blackListAddTag">Add</button>
+      </div>
+      <ul class="tag-list" id="tagList"></ul>
+      </div>
+      <div class="cleaning-btns">
+        <button class="clean-btn" id="b-clearTagsBtn">Clear Tags</button>
+        <button class="clean-btn" id="b-reloadPage">Apply Tags</button>
+      </div>
+  </details>
+
   <script src="popup.js"></script>
 </body>
 </html>

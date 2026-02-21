@@ -3,6 +3,9 @@ const input = document.getElementById("tagInput");
 const resetButton = document.getElementById("clearTagsBtn");
 const reloadButton = document.getElementById("reloadPage");
 
+const blackListTagInput = document.getElementById("blacklistTagInput");
+const blackListAddBtn = document.getElementById("blackListAddTag");
+
 addBtn.addEventListener("click", () => {
   const tag = input.value.trim().toLowerCase();
   if (!tag) return;
@@ -16,7 +19,6 @@ addBtn.addEventListener("click", () => {
     });
   });
 });
-
 
 resetButton.addEventListener("click", () => {
   // Clear tags in chrome.storage

@@ -26,7 +26,7 @@ function filterVideos() {
             if (node.tagName === "YTD-RICH-ITEM-RENDERER" || node.tagName === "YTD-COMPACT-VIDEO-RENDERER") {
               filterVideoCard(node);
             }
-
+            
             // Sometimes YouTube wraps new videos in divs; check children
             node.querySelectorAll && node.querySelectorAll("ytd-rich-item-renderer, ytd-compact-video-renderer").forEach(child => {
               filterVideoCard(child);
