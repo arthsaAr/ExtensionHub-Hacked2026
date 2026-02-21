@@ -55,3 +55,32 @@ function waitForTitles() {
 
 // Start the script
 waitForTitles();
+
+function blockBlacklistedSearch() {
+  chrome.storage.sync.get(["blacklist"], (result) => {
+    const blacklist = result.blacklist || [];
+    console.log("BLACKLISTED TERMS:", blacklist);
+
+    const input = document.querySelector(".ytSearchboxComponentInput");
+    if (!input) return;
+
+    input.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        const query = input.value.toLowerCase();
+
+        const isBlocked = blacklist.some(word =>
+          query.includes(word.toLowerCase())
+        );
+
+        if (isBlocked) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          alert("This search term is blocked by your YouTube Filter.");
+          input.value = "";
+        }
+      }
+    }, true); // capture phase is important
+  });
+}
+
+blockBlacklistedSearch();

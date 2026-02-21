@@ -46,7 +46,9 @@ function renderTags() {
       tagList.appendChild(li);
     });
   });
-
 }
 
 renderTags();
+
+// Blacklisting
+chrome.storage.sync.set({ blacklist: ["gaming", "gta"] });
