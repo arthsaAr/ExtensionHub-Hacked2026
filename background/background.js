@@ -209,7 +209,7 @@ function buildBrandedQuery(title, brandInfo) {
   }
 
   const query = [...new Set(tokens)].slice(0, 6).join(' ');
-  console.log(`[SaveMate] Branded query: "${title.substring(0, 55)}" → "${query}"`);
+  console.log(`[Hub] Branded query: "${title.substring(0, 55)}" → "${query}"`);
   return query;
 }
 
@@ -227,7 +227,7 @@ function buildGenericQuery(title) {
     });
 
   const query = [...new Set(tokens)].slice(0, 6).join(' ');
-  console.log(`[SaveMate] Generic query: "${title.substring(0, 55)}" → "${query}"`);
+  console.log(`[Hub] Generic query: "${title.substring(0, 55)}" → "${query}"`);
   return query;
 }
 
@@ -260,19 +260,19 @@ function isAccessory(title) {
 
   for (const phrase of ACCESSORY_PHRASES) {
     if (lower.includes(phrase)) {
-      console.log(`[SaveMate] Accessory-phrase "${phrase}": "${title.substring(0, 55)}"`);
+      console.log(`[Hub] Accessory-phrase "${phrase}": "${title.substring(0, 55)}"`);
       return true;
     }
   }
 
   if (FOR_BRAND_PATTERN.test(lower)) {
-    console.log(`[SaveMate] Accessory-for-brand: "${title.substring(0, 55)}"`);
+    console.log(`[Hub] Accessory-for-brand: "${title.substring(0, 55)}"`);
     return true;
   }
 
   // Charging/cable accessories
   if (/\b(charger|charging cable|usb.?c cable|lightning cable|magsafe cable)\b/i.test(lower)) {
-    console.log(`[SaveMate] Accessory-charger: "${title.substring(0, 55)}"`);
+    console.log(`[Hub] Accessory-charger: "${title.substring(0, 55)}"`);
     return true;
   }
 
@@ -322,7 +322,7 @@ function scoreRelevance(searchQuery, resultTitle) {
   if (brandInfo) {
     const brandRx = new RegExp(`\\b${brandInfo.brand}\\b`, 'i');
     if (!brandRx.test(rNorm)) {
-      console.log(`[SaveMate] Brand-reject ("${brandInfo.brand}" missing): "${resultTitle.substring(0, 55)}"`);
+      console.log(`[Hub] Brand-reject ("${brandInfo.brand}" missing): "${resultTitle.substring(0, 55)}"`);
       return 0;
     }
   }
@@ -335,11 +335,11 @@ function scoreRelevance(searchQuery, resultTitle) {
 
   // First query word (brand or core noun) MUST appear in result
   if (!rNorm.includes(qWords[0]) && !rStems.has(stem(qWords[0]))) {
-    console.log(`[SaveMate] Core-reject ("${qWords[0]}"): "${resultTitle.substring(0, 55)}"`);
+    console.log(`[Hub] Core-reject ("${qWords[0]}"): "${resultTitle.substring(0, 55)}"`);
     return 0;
   }
 
-  console.log(`[SaveMate] Score ${(score * 100).toFixed(0)}% | Q:"${searchQuery}" | R:"${resultTitle.substring(0, 45)}"`);
+  console.log(`[Hub] Score ${(score * 100).toFixed(0)}% | Q:"${searchQuery}" | R:"${resultTitle.substring(0, 45)}"`);
   return score;
 }
 
@@ -347,15 +347,15 @@ async function runComparison(product) {
   const query = buildSearchQuery(product.title);
   if (!query) return [];
 
-  console.log(`[SaveMate] Searching: "${query}" for "${product.title}"`);
+  console.log(`[Hub] Searching: "${query}" for "${product.title}"`);
   const serpResults = await searchSerpAPI(query, product.title);
 
   if (!serpResults.length) {
-    console.log('[SaveMate] No relevant SerpAPI results');
+    console.log('[Hub] No relevant SerpAPI results');
     return [];
   }
 
-  console.log(`[SaveMate] Found ${serpResults.length} relevant results`);
+  console.log(`[Hub] Found ${serpResults.length} relevant results`);
   return serpResults; // each result has best url
 }
 
@@ -450,7 +450,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const existing = stored[tabKey];
 
         if (existing && existing.product?.title === msg.product.title && existing.status === 'done') {
-          console.log('[SaveMate] Cache hit:', msg.product.title);
+          console.log('[Hub] Cache hit:', msg.product.title);
           await chrome.storage.local.set({ lastComparison: existing });
           sendResponse(existing);
           return;
@@ -475,7 +475,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
         sendResponse(record);
       } catch (err) {
-        console.error('[SaveMate] PRODUCT_DETECTED failed:', err);
+        console.error('[Hub] PRODUCT_DETECTED failed:', err);
         const failed = { product: msg.product, prices: [], status: 'done' };
         await chrome.storage.local.set({ [tabKey]: failed, lastComparison: failed });
         sendResponse(failed);
@@ -571,7 +571,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 //       };
 //     }).filter(Boolean);
 //   } catch (err) {
-//     console.error('[SaveMate] SerpAPI error:', err);
+//     console.error('[Hub] SerpAPI error:', err);
 //     return [];
 //   }
 // }
@@ -620,7 +620,7 @@ async function searchSerpAPI(query, originalTitle) {
 
     return Object.values(bestPerSite).sort((a, b) => a.price - b.price);
   } catch (err) {
-    console.error('[SaveMate] SerpAPI error:', err);
+    console.error('[Hub] SerpAPI error:', err);
     return [];
   }
 }

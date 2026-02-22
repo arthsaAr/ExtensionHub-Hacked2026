@@ -1,7 +1,7 @@
 // ─── popup.js — Section Router with persistent state ────────
 
 const ALL_SECTIONS = ['homeSection', 'shoppingSection', 'youtubeSection', 'summarizeSection'];
-const STORAGE_KEY  = 'savemate_active_section';
+const STORAGE_KEY  = 'Hub_active_section';
 
 const initialised = {
   shoppingSection:  false,
