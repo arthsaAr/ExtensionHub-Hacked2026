@@ -10,7 +10,24 @@
 </head>
 <body>
 <div class="wrapper">
-
+  
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">◈</span>
+      <span class="logo-text">ExtensionHub</span>
+    </div>
+    <div class="header-right">
+      <button class="home-btn" id="homeBtn" title="Back to home">⌂</button>
+      <div class="selector-wrap">
+        <select class="section-select" id="sectionSelect">
+          <option value="shoppingSection">🛒 Shopping</option>
+          <option value="youtubeSection">▶ YouTube</option>
+          <option value="summarizeSection">📄 Summarize</option>
+        </select>
+      </div>
+    </div>
+  </header>
   <!-- ══════════════════════════════════════════════════════════
        HOME — First launch / service picker
        ══════════════════════════════════════════════════════════ -->
@@ -48,23 +65,6 @@
     </div>
   </div><!-- end homeSection -->
 
-  <!-- ── Header ─────────────────────────────────────────────── -->
-  <header class="header">
-    <div class="logo">
-      <span class="logo-icon">◈</span>
-      <span class="logo-text">ExtensionHub</span>
-    </div>
-    <div class="header-right">
-      <button class="home-btn" id="homeBtn" title="Back to home">⌂</button>
-      <div class="selector-wrap">
-        <select class="section-select" id="sectionSelect">
-          <option value="shoppingSection">🛒 Shopping</option>
-          <option value="youtubeSection">▶ YouTube</option>
-          <option value="summarizeSection">📄 Summarize</option>
-        </select>
-      </div>
-    </div>
-  </header>
 
   <!-- ══════════════════════════════════════════════════════════
        SHOPPING SECTION — SaveMate
@@ -121,7 +121,35 @@
   <!-- ══════════════════════════════════════════════════════════
        YOUTUBE SECTION — LockInTube
        ══════════════════════════════════════════════════════════ -->
-  <div id="youtubeSection" style="display:none;">
+    <div id="youtubeSection" style="display:none;">
+        <!-- Video Filter — single select -->
+        <div class="yt-card">
+          <h3 class="main-headers" style="margin-top:0;">Video Length</h3>
+          <div class="checkboxes" style="margin-top:8px;">
+            <label><input type="radio" name="videoLength" class="filter-checkbox"> Short</label>
+            <label><input type="radio" name="videoLength" class="filter-checkbox"> Medium</label>
+            <label><input type="radio" name="videoLength" class="filter-checkbox"> Long</label>
+          </div>
+        </div>
+
+        <!-- Blocked Tags (moved out of advanced) -->
+        <div class="filtering-div">
+          <h3 class="main-headers" style="margin-top:0;">Blocked Tags</h3>
+          <div class="input-div">
+            <input class="add-tag-input" type="text" id="blacklistTagInput" placeholder="Add a blocking tag">
+            <button class="add-tag-btn" id="blackListAddTag">Add</button>
+          </div>
+          <ul class="tag-list" id="blacklistTagList"></ul>
+        </div>
+        <div class="cleaning-btns">
+          <button class="clean-btn" id="b-clearTagsBtn">Clear Tags</button>
+          <button class="clean-btn" id="b-reloadPage">Apply Tags</button>
+        </div>
+
+      </div><!-- end youtubeSection -->
+ 
+ 
+       <!-- <div id="youtubeSection" style="display:none;">
 
     <div class="btn-div">
       <button class="clear-search-btn" id="clearSearch">Clear Youtube Search Bar</button>
@@ -175,30 +203,27 @@
       </div>
     </details>
 
-  </div><!-- end youtubeSection -->
+  </div>end youtubeSection -->
 
   <!-- ══════════════════════════════════════════════════════════
-       SUMMARIZE SECTION
-       ══════════════════════════════════════════════════════════ -->
-  <div id="summarizeSection" style="display:none;">
+        SUMMARIZE SECTION
+        ══════════════════════════════════════════════════════════ -->
+<div id="summarizeSection" style="display:none;">
 
-  <!-- Generate Summary -->
-  <div class="yt-card">
-    <h3 class="main-headers" style="margin-top:0;">Generate Summary</h3>
-    <div style="display:flex; gap:10px; margin-top:12px;">
-      <div style="flex:1;">
-        <label style="font-size:10px; color:#3d5070; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;">Min Words</label>
-        <input type="number" id="minWords" value="50" min="20" style="
-          width:100%; margin-top:5px; background:#0b1422; border:1px solid #253550;
-          color:#e8eaf0; border-radius:8px; padding:8px 10px; font-family:inherit;
-          font-size:12px; outline:none;">
+  <!-- ───────── Generate Summary ───────── -->
+  <div class="yt-card summarize-card">
+    <h3 class="main-headers">Page Summary</h3>
+
+    <div class="word-control-row">
+
+      <div class="word-box">
+        <label>Minimum Words</label>
+        <input type="number" id="minWords" min="20" value="50">
       </div>
-      <div style="flex:1;">
-        <label style="font-size:10px; color:#3d5070; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;">Max Words</label>
-        <input type="number" id="maxWords" value="120" min="20" style="
-          width:100%; margin-top:5px; background:#0b1422; border:1px solid #253550;
-          color:#e8eaf0; border-radius:8px; padding:8px 10px; font-family:inherit;
-          font-size:12px; outline:none;">
+
+      <div class="word-box">
+        <label>Maximum Words</label>
+        <input type="number" id="maxWords" min="20" value="120">
       </div>
     </div>
     <!-- THE SUMMARIZE BUTTON -->
@@ -211,24 +236,22 @@
     <p id="summaryOutput"></p>
   </div>
 
-  <!-- Ask About This Page -->
-  <div class="yt-card">
-    <h3 class="main-headers" style="margin-top:0;">Ask About This Page</h3>
-    <textarea id="questionInput" placeholder="Ask something about this page..." style="
-      width:100%; margin-top:12px; background:#0b1422; border:1px solid #253550;
-      color:#e8eaf0; border-radius:8px; padding:10px 12px; font-family:inherit;
-      font-size:12px; outline:none; resize:vertical; min-height:70px;
-      box-sizing:border-box;"></textarea>
-    <button id="askBtn" style="
-      margin-top:10px; width:100%; background:#111c2c; color:#8898bb;
-      border:1px solid #1e2d42; padding:10px; border-radius:9px;
-      font-size:12px; font-family:inherit; font-weight:600; cursor:pointer;">
-      Ask AI (coming soon)
+
+  <!-- ───────── Ask About Page ───────── -->
+  <div class="yt-card summarize-card">
+    <h3 class="main-headers">Ask About This Page</h3>
+
+    <textarea id="questionInput" placeholder="Ask a question about this page..."></textarea>
+
+    <button id="askBtn" class="secondary-btn">
+      Ask AI (Coming Soon)
     </button>
     <p id="aiAnswer"></p>
   </div>
 
 </div>
+
+
 
 </div><!-- end wrapper -->
 

@@ -45,7 +45,7 @@ body {
 }
 
 .logo-text {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.4px;
   color: #fff;
@@ -62,9 +62,9 @@ body {
   border: 1px solid #253550;
   border-radius: 8px;
   color: #6b7a99;
-  font-size: 15px;
-  width: 32px;
-  height: 32px;
+  font-size: 20px;
+  width: 29px;
+  height: 29px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -139,10 +139,11 @@ body {
 
 .home-greeting {
   margin: 0;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   color: #4a5a78;
   letter-spacing: 0.01em;
+  padding-bottom: 8px;
 }
 
 .home-cards {
@@ -215,7 +216,7 @@ body {
   background: linear-gradient(135deg, #0a3820 0%, #0c4a2a 55%, #0d5532 100%);
   border: 1px solid #1a6b3c;
   border-radius: 14px;
-  padding: 18px 20px;
+  padding: 15px 18px;
   overflow: hidden;
 }
 
@@ -556,6 +557,8 @@ body {
 #youtubeSection .filtering-div {
   background: #111c2c;
   border: 1px solid #1e2d42;
+  margin-top:8px;
+  margin-bottom: 4px;
   border-radius: 12px;
   padding: 16px 16px 16px;
 }
@@ -698,34 +701,132 @@ body {
   color: #a0aecc;
   margin-bottom: 16px;
 }
+/* ─────────────────────────────────────────────
+  SUMMARIZE — Clean Layout
+   ───────────────────────────────────────────── */
+/* ───────────────────────────────────────
+   SUMMARIZER CLEAN PROFESSIONAL UI
+   ─────────────────────────────────────── */
 
-/* ════════════════════════════════════════════════════════════
-   5. SUMMARIZE
-   ════════════════════════════════════════════════════════════ */
+#summarizeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
-#summarizeSection .container {
+/* Card spacing */
+.summarize-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Word controls */
+.word-control-row {
+  display: flex;
+  gap: 14px;
+}
+
+.word-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.word-box label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #3d5070;
+  margin-bottom: 6px;
+}
+
+.word-box input {
+  background: #0b1422;
+  border: 1px solid #253550;
+  color: #e8eaf0;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 12px;
+  outline: none;
+  transition: 0.2s;
+}
+
+.word-box input:focus {
+  border-color: #2f6df6;
+  box-shadow: 0 0 0 3px rgba(47,109,246,0.15);
+}
+
+/* Textarea */
+#questionInput {
+  background: #0b1422;
+  border: 1px solid #253550;
+  color: #e8eaf0;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 12px;
+  min-height: 90px;
+  resize: vertical;
+  outline: none;
+  transition: 0.2s;
+}
+
+#questionInput:focus {
+  border-color: #2f6df6;
+  box-shadow: 0 0 0 3px rgba(47,109,246,0.15);
+}
+
+/* Buttons */
+.primary-btn {
+  background: #2f6df6;
+  border: none;
+  padding: 11px;
+  border-radius: 9px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.primary-btn:hover {
+  background: #1f5ae0;
+  transform: translateY(-1px);
+}
+
+.secondary-btn {
   background: #111c2c;
   border: 1px solid #1e2d42;
-  border-radius: 14px;
-  padding: 48px 24px;
-  text-align: center;
-  font-size: 14px;
-  color: #3d5070;
+  padding: 10px;
+  border-radius: 9px;
+  color: #8898bb;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
-/* ── Summarize loader ─────────────────────────────────────── */
-#summarizeSection .loader {
+.secondary-btn:hover {
+  background: #1a2840;
+  color: #d0d8f0;
+  border-color: #2a3f5e;
+}
+
+/* Output containers */
+.summary-container {
   display: none;
-  margin: 12px auto 0;
-  border: 3px solid #1a2840;
-  border-top: 3px solid #2f6df6;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  animation: spin 0.9s linear infinite;
+  background: #0b1422;
+  border: 1px solid #1e2d42;
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #b0bcd8;
+  max-height: 150px;
+  overflow-y: auto;
 }
 
-@keyframes spin {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+/* Loader */
+#loader {
+  display: none;
+  margin: 0 auto;
 }

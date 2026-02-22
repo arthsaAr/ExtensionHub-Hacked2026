@@ -61,10 +61,15 @@ function renderPriceCards(product, prices, isSearching = false) {
   }
 
   const allSites = buildSitesList(product, prices);
+
+  const visibleSites = allSites.filter(site => 
+    site.isCurrentSite || site.price != null
+  );
+
   const validPrices = allSites.map(s => s.price).filter(p => p != null && p > 0);
   const lowestPrice = validPrices.length ? Math.min(...validPrices) : null;
 
-  allSites.forEach(site => {
+  visibleSites.forEach(site => {
     console.log("UI card:", site.name, "URL:", site.url);
     const isBest    = lowestPrice != null && site.price != null && site.price === lowestPrice;
     const card      = document.createElement('div');
