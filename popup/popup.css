@@ -557,6 +557,8 @@ body {
 #youtubeSection .filtering-div {
   background: #111c2c;
   border: 1px solid #1e2d42;
+  margin-top:8px;
+  margin-bottom: 4px;
   border-radius: 12px;
   padding: 16px 16px 16px;
 }

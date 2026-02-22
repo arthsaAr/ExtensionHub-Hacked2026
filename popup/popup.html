@@ -121,7 +121,35 @@
   <!-- ══════════════════════════════════════════════════════════
        YOUTUBE SECTION — LockInTube
        ══════════════════════════════════════════════════════════ -->
-  <div id="youtubeSection" style="display:none;">
+    <div id="youtubeSection" style="display:none;">
+        <!-- Video Filter — single select -->
+        <div class="yt-card">
+          <h3 class="main-headers" style="margin-top:0;">Video Length</h3>
+          <div class="checkboxes" style="margin-top:8px;">
+            <label><input type="radio" name="videoLength" class="filter-checkbox"> Short</label>
+            <label><input type="radio" name="videoLength" class="filter-checkbox"> Medium</label>
+            <label><input type="radio" name="videoLength" class="filter-checkbox"> Long</label>
+          </div>
+        </div>
+
+        <!-- Blocked Tags (moved out of advanced) -->
+        <div class="filtering-div">
+          <h3 class="main-headers" style="margin-top:0;">Blocked Tags</h3>
+          <div class="input-div">
+            <input class="add-tag-input" type="text" id="blacklistTagInput" placeholder="Add a blocking tag">
+            <button class="add-tag-btn" id="blackListAddTag">Add</button>
+          </div>
+          <ul class="tag-list" id="blacklistTagList"></ul>
+        </div>
+        <div class="cleaning-btns">
+          <button class="clean-btn" id="b-clearTagsBtn">Clear Tags</button>
+          <button class="clean-btn" id="b-reloadPage">Apply Tags</button>
+        </div>
+
+      </div><!-- end youtubeSection -->
+ 
+ 
+       <!-- <div id="youtubeSection" style="display:none;">
 
     <div class="btn-div">
       <button class="clear-search-btn" id="clearSearch">Clear Youtube Search Bar</button>
@@ -175,7 +203,7 @@
       </div>
     </details>
 
-  </div><!-- end youtubeSection -->
+  </div>end youtubeSection -->
 
   <!-- ══════════════════════════════════════════════════════════
        SUMMARIZE SECTION
