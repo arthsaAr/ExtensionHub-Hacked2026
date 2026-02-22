@@ -1,4 +1,4 @@
-//rules for each sites
+//rules for each site
 const SITES = {
   amazon: {
     match:     h => h.includes('amazon'),
@@ -6,7 +6,11 @@ const SITES = {
     getTitle:  path => {
       const parts = path.split('/').filter(Boolean);
       const i = parts.indexOf('dp');
-      return i > 0 && parts[i - 1].includes('-') ? parts[i - 1] : null;
+      if (i > 0 && parts[i - 1].includes('-')) {
+        return parts[i - 1];
+      } else {
+        return null;
+      }
     },
     priceSelectors: [
       'span.a-price .a-offscreen',
@@ -26,7 +30,11 @@ const SITES = {
       const parts = path.split('/');
       const i = parts.indexOf('ip');
       const slug = parts[i + 1];
-      return slug && !/^\d+$/.test(slug) ? slug : null;
+      if (slug && !/^\d+$/.test(slug)) {
+        return slug;
+      } else {
+        return null;
+      }
     },
     priceSelectors: [
       '[data-automation="buybox-price"]',
@@ -49,7 +57,11 @@ const SITES = {
     getTitle:  path => {
       const parts = path.split('/').filter(Boolean);
       const i = parts.findIndex(p => /^\d+(\.aspx)?$/.test(p));
-      return i > 0 ? parts[i - 1] : null;
+      if (i > 0) {
+        return parts[i - 1];
+      } else {
+        return null;
+      }
     },
     priceSelectors: [
       '[data-automation="product-price"]',
@@ -68,7 +80,11 @@ const SITES = {
       const i = parts.findIndex(p => p === 'p' || p === 'product');
       const slug = parts[i + 1];
       const isCode = slug && (/^[\d_]+$/.test(slug) || /^\d+[_A-Z]+$/i.test(slug));
-      return slug && !isCode ? slug : null;
+      if (slug && !isCode) {
+        return slug;
+      } else {
+        return null;
+      }
     },
     priceSelectors: [
       '[data-code="price"]',
@@ -80,38 +96,44 @@ const SITES = {
   },
 };
 
-//checking which specific site we are on(hostname)
+//checking which specific site we are on (hostname)
 const CURRENT_SITE = Object.keys(SITES).find(
   key => SITES[key].match(window.location.hostname)
 ) ?? null;
 
 if (!CURRENT_SITE) {
-  throw new Error('[SaveMate] Not a supported site.');
+  throw new Error('[Hub] Not a supported site.');
 }
 
 const site = SITES[CURRENT_SITE];
 
-//checking URL pattern to see if we are in product page
+//checking URL pattern to see if we are on a product page
 function isProductPage() {
   return site.isProduct(window.location.pathname);
 }
 
-//getting product name from url
+//getting product name from URL
 function getTitleFromUrl() {
   try {
     const fromUrl = site.getTitle(window.location.pathname);
-    if (fromUrl) return fromUrl.replace(/-/g, ' ').trim();
+    if (fromUrl) {
+      return fromUrl.replace(/-/g, ' ').trim();
+    }
   } catch (_) {}
 
   // Universal DOM fallback
   const el = document.querySelector('title, h1');
-  if (el) return el.textContent.split(/[:|–\-]/)[0].trim();
+  if (el) {
+    return el.textContent.split(/[:|–\-]/)[0].trim();
+  }
   return null;
 }
 
-//cleaning the overall title with common words
+//cleaning the overall title by removing common filler words
 function cleanTitle(raw) {
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
   return raw
     .replace(/\b(with|the|a|an|for|set of|pack of|lot of)\b/gi, ' ')
     .replace(/\s{2,}/g, ' ')
@@ -119,37 +141,49 @@ function cleanTitle(raw) {
     .substring(0, 100);
 }
 
-//trying CSS selector for the site to find a valid price, from it
+//trying each CSS selector for the site until we find a valid price
 function getPrice() {
   for (const sel of site.priceSelectors) {
     try {
       const el = document.querySelector(sel);
-      if (!el) continue;
+      if (!el) {
+        continue;
+      }
       const raw =
         el.getAttribute('content') ||
         el.innerText?.trim()       ||
         el.textContent?.trim();
-      if (!raw || raw.length === 0 || raw.length >= 30) continue;
+      if (!raw || raw.length === 0 || raw.length >= 30) {
+        continue;
+      }
       const m = raw.replace(/,/g, '').match(/\d+\.?\d*/);
-      if (!m) continue;
+      if (!m) {
+        continue;
+      }
       const p = parseFloat(m[0]);
-      if (p > 0 && p < 100000) return p;
+      if (p > 0 && p < 100000) {
+        return p;
+      }
     } catch (_) {}
   }
   return null;
 }
 
-//combining the information we extracted into a object
+//combining everything we extracted into one object
 function getProductData() {
-  if (!isProductPage()) return null;
+  if (!isProductPage()) {
+    return null;
+  }
 
   const rawTitle = getTitleFromUrl();
   const title    = cleanTitle(rawTitle);
   const price    = getPrice();
 
-  console.log(`[SaveMate] Site: ${CURRENT_SITE} | Title: "${title}" | Price: ${price}`);
+  console.log(`[Hub] Site: ${CURRENT_SITE} | Title: "${title}" | Price: ${price}`);
 
-  if (!title) return null;
+  if (!title) {
+    return null;
+  }
   // Price can be null — we still want to show comparison prices
 
   return {
@@ -160,21 +194,32 @@ function getProductData() {
   };
 }
 
-// ─── SPA NAVIGATION WATCHER ──────────────────────────────────
-
 let lastUrl   = '';
 let lastKey   = '';
 let initTimer = null;
 
-//extracting the unique ID for curr product
+//extracting the unique ID for the current product
 function getProductKey() {
   const path = window.location.pathname;
-  if (CURRENT_SITE === 'amazon')  { const m = path.match(/\/dp\/([A-Z0-9]{10})/i); return m ? m[1] : path; }
-  if (CURRENT_SITE === 'walmart') { const parts = path.split('/').filter(Boolean); return parts[parts.length - 1]; }
+
+  if (CURRENT_SITE === 'amazon') {
+    const m = path.match(/\/dp\/([A-Z0-9]{10})/i);
+    if (m) {
+      return m[1];
+    } else {
+      return path;
+    }
+  }
+
+  if (CURRENT_SITE === 'walmart') {
+    const parts = path.split('/').filter(Boolean);
+    return parts[parts.length - 1];
+  }
+
   return path;
 }
 
-//just the timer
+//watching for URL changes every 800ms (handles SPA navigation)
 setInterval(() => {
   const currentUrl = window.location.href;
   const currentKey = getProductKey();
@@ -185,29 +230,36 @@ setInterval(() => {
     if (currentKey !== lastKey) {
       lastKey = currentKey;
       chrome.runtime.sendMessage({ type: 'CLEAR_COMPARISON' });
-      if (initTimer) clearTimeout(initTimer);
+      if (initTimer) {
+        clearTimeout(initTimer);
+      }
       initTimer = setTimeout(init, 2000);
     }
   }
 }, 800);
 
-//the pop up logic
+//the popup logic
 let buyTimer   = null;
 let popupShown = false;
 const DELAY_MS = 15 * 1000;
 
 function startTimer(product) {
-  if (buyTimer) clearTimeout(buyTimer);
+  if (buyTimer) {
+    clearTimeout(buyTimer);
+  }
   popupShown = false;
   buyTimer = setTimeout(() => {
-    if (!document.hidden) showBuyPopup(product);
+    if (!document.hidden) {
+      showBuyPopup(product);
+    }
   }, DELAY_MS);
 }
 
-
-//adding the popus css to the page after time
+//adding the popup CSS to the page, only once
 function injectStyles() {
-  if (document.getElementById('sm-styles')) return;
+  if (document.getElementById('sm-styles')) {
+    return;
+  }
   const s = document.createElement('style');
   s.id = 'sm-styles';
   s.textContent = `
@@ -229,17 +281,25 @@ function injectStyles() {
   document.head.appendChild(s);
 }
 
-//rendering
+//rendering the "did you buy it?" popup onto the page
 function showBuyPopup(product) {
-  if (popupShown || !product?.price) return;
+  if (popupShown || !product?.price) {
+    return;
+  }
   popupShown = true;
   injectStyles();
   document.getElementById('sm-popup')?.remove();
+
+  let priceText = '';
+  if (product.price) {
+    priceText = 'at $' + product.price.toFixed(2);
+  }
+
   const popup = document.createElement('div');
   popup.id = 'sm-popup';
   popup.innerHTML = `
     <h4>🛍️ Did you buy it?</h4>
-    <p>${product.title.substring(0, 55)}... ${product.price ? 'at $' + product.price.toFixed(2) : ''}</p>
+    <p>${product.title.substring(0, 55)}... ${priceText}</p>
     <div class="sm-btn-row">
       <button class="sm-btn-yes" id="sm-yes">✅ Yes!</button>
       <button class="sm-btn-no"  id="sm-no">Not yet</button>
@@ -247,32 +307,42 @@ function showBuyPopup(product) {
     <button class="sm-dismiss" id="sm-dismiss">Dismiss</button>
   `;
   document.body.appendChild(popup);
+
   document.getElementById('sm-yes').onclick = () => {
     popup.remove();
     chrome.runtime.sendMessage({ type: 'PURCHASE_CONFIRMED', product }, (res) => {
       if (res?.saved > 0) {
         const b = document.createElement('div');
         b.id = 'sm-saved-banner';
-        b.innerHTML = `<div style="font-size:26px">🎉</div><h4 style="margin:6px 0 2px;font-size:15px;color:#111">You saved $${res.saved.toFixed(2)}!</h4><p style="margin:0;font-size:12px;color:#555">SaveMate found you the best price.</p>`;
+        b.innerHTML = `<div style="font-size:26px">🎉</div><h4 style="margin:6px 0 2px;font-size:15px;color:#111">You saved $${res.saved.toFixed(2)}!</h4><p style="margin:0;font-size:12px;color:#555">Hub found you the best price.</p>`;
         document.body.appendChild(b);
         setTimeout(() => b.remove(), 5000);
       }
     });
   };
-  document.getElementById('sm-no').onclick     = () => { popup.remove(); startTimer(product); };
-  document.getElementById('sm-dismiss').onclick = () => popup.remove();
+
+  document.getElementById('sm-no').onclick = () => {
+    popup.remove();
+    startTimer(product);
+  };
+
+  document.getElementById('sm-dismiss').onclick = () => {
+    popup.remove();
+  };
 }
 
-//initializing
+//entry point — detects product and fires messages to background
 function init() {
   const product = getProductData();
   if (!product) {
-    console.log('[SaveMate] Not a product page, skipping.');
+    console.log('[Hub] Not a product page, skipping.');
     return;
   }
-  console.log('[SaveMate] Product detected:', product);
+  console.log('[Hub] Product detected:', product);
   chrome.runtime.sendMessage({ type: 'PRODUCT_DETECTED', product });
-  if (product.price) startTimer(product);
+  if (product.price) {
+    startTimer(product);
+  }
 }
 
 // Wait for page to fully render before extracting
