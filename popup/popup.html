@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>ExtensionHub</title>
@@ -8,162 +9,163 @@
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
-<div class="wrapper">
-  
-  <!-- ── Header ─────────────────────────────────────────────── -->
-  <header class="header">
-    <div class="logo">
-      <span class="logo-icon">◈</span>
-      <span class="logo-text">ExtensionHub</span>
-    </div>
-    <div class="header-right">
-      <button class="home-btn" id="homeBtn" title="Back to home">⌂</button>
-      <div class="selector-wrap">
-        <select class="section-select" id="sectionSelect">
-          <option value="shoppingSection">🛒 Shopping</option>
-          <option value="youtubeSection">▶ YouTube</option>
-          <option value="summarizeSection">📄 Summarize</option>
-        </select>
+  <div class="wrapper">
+
+    <!-- ── Header ─────────────────────────────────────────────── -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">ExtensionHub</span>
       </div>
-    </div>
-  </header>
-  <!-- ══════════════════════════════════════════════════════════
+      <div class="header-right">
+        <button class="home-btn" id="homeBtn" title="Back to home">⌂</button>
+        <div class="selector-wrap">
+          <select class="section-select" id="sectionSelect">
+            <option value="shoppingSection">🛒 Shopping</option>
+            <option value="youtubeSection">▶ YouTube</option>
+            <option value="summarizeSection">📄 Summarize</option>
+          </select>
+        </div>
+      </div>
+    </header>
+    <!-- ══════════════════════════════════════════════════════════
        HOME — First launch / service picker
        ══════════════════════════════════════════════════════════ -->
-  <div id="homeSection" style="display:none;">
-    <p class="home-greeting">What do you want to do today?</p>
-    <div class="home-cards">
+    <div id="homeSection" style="display:none;">
+      <p class="home-greeting">What do you want to do today?</p>
+      <div class="home-cards">
 
-      <div class="home-card" data-section="shoppingSection">
-        <span class="home-card__icon">🛒</span>
-        <div>
-          <p class="home-card__title">Shopping</p>
-          <p class="home-card__sub">Compare prices across stores</p>
-        </div>
-        <span class="home-card__arrow">→</span>
-      </div>
-
-      <div class="home-card" data-section="youtubeSection">
-        <span class="home-card__icon">▶</span>
-        <div>
-          <p class="home-card__title">LockInTube</p>
-          <p class="home-card__sub">Focus mode for YouTube</p>
-        </div>
-        <span class="home-card__arrow">→</span>
-      </div>
-
-      <div class="home-card" data-section="summarizeSection">
-        <span class="home-card__icon">📄</span>
-        <div>
-          <p class="home-card__title">Summarize</p>
-          <p class="home-card__sub">Summarize any page</p>
-        </div>
-        <span class="home-card__arrow">→</span>
-      </div>
-
-    </div>
-  </div><!-- end homeSection -->
-
-
-  <!-- ══════════════════════════════════════════════════════════
-       SHOPPING SECTION — Hub
-       ══════════════════════════════════════════════════════════ -->
-  <div id="shoppingSection">
-
-    <!-- Total Saved Banner -->
-    <div class="savings-banner">
-      <div class="savings-banner__label">Total Saved</div>
-      <div class="savings-banner__amount" id="totalSaved">$0.00</div>
-      <div class="savings-banner__glow"></div>
-    </div>
-
-    <!-- Current Product -->
-    <div class="section">
-      <p class="section-label">Current Product</p>
-      <div class="product-card">
-        <div class="product-card__icon">🛒</div>
-        <div class="product-card__info">
-          <p class="product-card__name" id="productName">Open a product page to start</p>
-          <span class="product-card__site" id="currentSite">Tracking Amazon · Walmart · Best Buy · Superstore</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Price Comparison -->
-    <div class="section">
-      <p class="section-label">Price Comparison</p>
-      <div id="priceCardsContainer">
-        <div class="price-card">
+        <div class="home-card" data-section="shoppingSection">
+          <span class="home-card__icon">🛒</span>
           <div>
-            <p class="site">Waiting for product…</p>
-            <h3>—</h3>
+            <p class="home-card__title">Shopping</p>
+            <p class="home-card__sub">Compare prices across stores</p>
+          </div>
+          <span class="home-card__arrow">→</span>
+        </div>
+
+        <div class="home-card" data-section="youtubeSection">
+          <span class="home-card__icon">▶</span>
+          <div>
+            <p class="home-card__title">LockInTube</p>
+            <p class="home-card__sub">Focus mode for YouTube</p>
+          </div>
+          <span class="home-card__arrow">→</span>
+        </div>
+
+        <div class="home-card" data-section="summarizeSection">
+          <span class="home-card__icon">📄</span>
+          <div>
+            <p class="home-card__title">Summarize</p>
+            <p class="home-card__sub">Summarize any page</p>
+          </div>
+          <span class="home-card__arrow">→</span>
+        </div>
+
+      </div>
+    </div><!-- end homeSection -->
+
+
+    <!-- ══════════════════════════════════════════════════════════
+       SHOPPING SECTION — SaveMate
+       ══════════════════════════════════════════════════════════ -->
+    <div id="shoppingSection">
+
+      <!-- Total Saved Banner -->
+      <div class="savings-banner">
+        <div class="savings-banner__label">Total Saved</div>
+        <div class="savings-banner__amount" id="totalSaved">$0.00</div>
+        <div class="savings-banner__glow"></div>
+      </div>
+
+      <!-- Current Product -->
+      <div class="section">
+        <p class="section-label">Current Product</p>
+        <div class="product-card">
+          <div class="product-card__icon">🛒</div>
+          <div class="product-card__info">
+            <p class="product-card__name" id="productName">Open a product page to start</p>
+            <span class="product-card__site" id="currentSite">Tracking Amazon · Walmart · Best Buy · Superstore</span>
           </div>
         </div>
       </div>
-      <p class="disclaimer">Prices from search results · click any card to verify</p>
-    </div>
 
-    <!-- Tracked Sites -->
-    <div class="section">
-      <p class="section-label">Tracked Sites</p>
-      <div class="tags" id="tagsContainer">
-        <span class="tag">Amazon CA</span>
-        <span class="tag">Walmart CA</span>
-        <span class="tag">Best Buy CA</span>
-        <span class="tag">Superstore</span>
-        <button class="tag tag--add" id="addSiteBtn">＋</button>
+      <!-- Price Comparison -->
+      <div class="section">
+        <p class="section-label">Price Comparison</p>
+        <div id="priceCardsContainer">
+          <div class="price-card">
+            <div>
+              <p class="site">Waiting for product…</p>
+              <h3>—</h3>
+            </div>
+          </div>
+        </div>
+        <p class="disclaimer">Prices from search results · click any card to verify</p>
       </div>
-    </div>
 
-  </div><!-- end shoppingSection -->
+      <!-- Tracked Sites -->
+      <div class="section">
+        <p class="section-label">Tracked Sites</p>
+        <div class="tags" id="tagsContainer">
+          <span class="tag">Amazon CA</span>
+          <span class="tag">Walmart CA</span>
+          <span class="tag">Best Buy CA</span>
+          <span class="tag">Superstore</span>
+          <button class="tag tag--add" id="addSiteBtn">＋</button>
+        </div>
+      </div>
 
-  <!-- ══════════════════════════════════════════════════════════
+    </div><!-- end shoppingSection -->
+
+    <!-- ══════════════════════════════════════════════════════════
        YOUTUBE SECTION — LockInTube
        ══════════════════════════════════════════════════════════ -->
     <div id="youtubeSection" style="display:none;">
-        <!-- Video Filter — single select -->
-        <div class="yt-card">
-          <h3 class="main-headers" style="margin-top:0;">Video Length</h3>
-          <div class="checkboxes" style="margin-top:8px;">
-            <label><input type="radio" name="videoLength" class="filter-checkbox"> Short</label>
-            <label><input type="radio" name="videoLength" class="filter-checkbox"> Medium</label>
-            <label><input type="radio" name="videoLength" class="filter-checkbox"> Long</label>
-          </div>
+      <!-- Video Filter — single select -->
+      <div class="yt-card">
+        <h3 class="main-headers" style="margin-top:0;">Video Length</h3>
+        <div class="checkboxes" style="margin-top:8px;">
+          <label><input type="radio" name="videoLength" class="filter-checkbox"> Short</label>
+          <label><input type="radio" name="videoLength" class="filter-checkbox"> Medium</label>
+          <label><input type="radio" name="videoLength" class="filter-checkbox"> Long</label>
         </div>
-
-        
-    <div class="filtering-div">
-      <h3 class="main-headers">Allowed Video Tags</h3>
-      <div class="input-div">
-        <input class="add-tag-input" type="text" id="tagInput" placeholder="Add a topic">
-        <button class="add-tag-btn" id="addTag">Add</button>
       </div>
-      <ul class="tag-list" id="tagList"></ul>
-    </div>
-    <div class="cleaning-btns">
-      <button class="clean-btn" id="clearTagsBtn">Clear Tags</button>
-      <button class="clean-btn" id="reloadPage">Apply Tags</button>
-    </div> 
 
-        <!-- Blocked Tags (moved out of advanced) -->
-        <div class="filtering-div">
-          <h3 class="main-headers" style="margin-top:0;">Blocked Tags</h3>
-          <div class="input-div">
-            <input class="add-tag-input" type="text" id="blacklistTagInput" placeholder="Add a blocking tag">
-            <button class="add-tag-btn" id="blackListAddTag">Add</button>
-          </div>
-          <ul class="tag-list" id="blacklistTagList"></ul>
-        </div>
-        <div class="cleaning-btns">
-          <button class="clean-btn" id="b-clearTagsBtn">Clear Tags</button>
-          <button class="clean-btn" id="b-reloadPage">Apply Tags</button>
-        </div>
 
-      </div><!-- end youtubeSection -->
- 
- 
-       <!-- <div id="youtubeSection" style="display:none;">
+      <div class="filtering-div">
+        <h3 class="main-headers">Allowed Video Tags</h3>
+        <div class="input-div">
+          <input class="add-tag-input" type="text" id="tagInput" placeholder="Add a topic">
+          <button class="add-tag-btn" id="addTag">Add</button>
+        </div>
+        <ul class="tag-list" id="tagList"></ul>
+      </div>
+      <div class="cleaning-btns">
+        <button class="clean-btn" id="clearTagsBtn">Clear Tags</button>
+        <button class="clean-btn" id="reloadPage">Apply Tags</button>
+      </div>
+
+      <!-- Blocked Tags (moved out of advanced) -->
+      <div class="filtering-div">
+        <h3 class="main-headers" style="margin-top:0;">Blocked Tags</h3>
+        <div class="input-div">
+          <input class="add-tag-input" type="text" id="blacklistTagInput" placeholder="Add a blocking tag">
+          <button class="add-tag-btn" id="blackListAddTag">Add</button>
+        </div>
+        <ul class="tag-list" id="blacklistTagList"></ul>
+      </div>
+      <div class="cleaning-btns">
+        <button class="clean-btn" id="b-clearTagsBtn">Clear Tags</button>
+        <button class="clean-btn" id="b-reloadPage">Apply Tags</button>
+      </div>
+
+    </div><!-- end youtubeSection -->
+
+
+    <!-- <div id="youtubeSection" style="display:none;">
 
     <div class="btn-div">
       <button class="clear-search-btn" id="clearSearch">Clear Youtube Search Bar</button>
@@ -188,7 +190,7 @@
       </div>
     </div>-->
 
-<!-- 
+    <!-- 
     <details class="advanced-details">
       <summary>Click to show advanced options</summary>
       <div class="filtering-div">
@@ -207,60 +209,63 @@
 
   </div>end youtubeSection -->
 
-  <!-- ══════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════
         SUMMARIZE SECTION
         ══════════════════════════════════════════════════════════ -->
-<div id="summarizeSection" style="display:none;">
+    <div id="summarizeSection" style="display:none;">
 
-  <!-- ───────── Generate Summary ───────── -->
-  <div class="yt-card summarize-card">
-    <h3 class="main-headers">Page Summary</h3>
+      <!-- ───────── Generate Summary ───────── -->
+      <div class="yt-card summarize-card">
+        <h3 class="main-headers">Page Summary</h3>
 
-    <div class="word-control-row">
+        <div class="word-control-row">
 
-      <div class="word-box">
-        <label>Minimum Words</label>
-        <input type="number" id="minWords" min="20" value="50">
-      </div>
+          <div class="word-box">
+            <label>Minimum Words</label>
+            <input type="number" id="minWords" min="20" value="50">
+          </div>
 
-      <div class="word-box">
-        <label>Maximum Words</label>
-        <input type="number" id="maxWords" min="20" value="120">
-      </div>
-    </div>
-    <!-- THE SUMMARIZE BUTTON -->
-    <button id="summarizeBtn" style="
+          <div class="word-box">
+            <label>Maximum Words</label>
+            <input type="number" id="maxWords" min="20" value="120">
+          </div>
+        </div>
+        <!-- THE SUMMARIZE BUTTON -->
+        <button id="summarizeBtn" style="
       margin-top:14px; width:100%; background:#2f6df6; color:#fff; border:none;
       padding:11px; border-radius:9px; font-size:13px; font-family:inherit;
       font-weight:600; cursor:pointer;">Generate Summary</button>
 
-<div id="loader" style="display:none; margin:12px auto 0; border:3px solid #1a2840; border-top:3px solid #2f6df6; border-radius:50%; width:24px; height:24px; animation:spin 0.9s linear infinite;"></div>
-    <p id="summaryOutput"></p>
-  </div>
+        <div id="loader"
+          style="display:none; margin:12px auto 0; border:3px solid #1a2840; border-top:3px solid #2f6df6; border-radius:50%; width:24px; height:24px; animation:spin 0.9s linear infinite;">
+        </div>
+        <p id="summaryOutput"></p>
+      </div>
 
 
-  <!-- ───────── Ask About Page ───────── -->
-  <div class="yt-card summarize-card">
-    <h3 class="main-headers">Ask About This Page</h3>
+      <!-- ───────── Ask About Page ───────── -->
+      <div class="yt-card summarize-card">
+        <h3 class="main-headers">Ask About This Page</h3>
 
-    <textarea id="questionInput" placeholder="Ask a question about this page..."></textarea>
+        <textarea id="questionInput" placeholder="Ask a question about this page..."></textarea>
 
-    <button id="askBtn" class="secondary-btn">
-      Ask AI
-    </button>
-    <p id="aiAnswer"></p>
-  </div>
+        <button id="askBtn" class="secondary-btn">
+          Ask AI
+        </button>
+        <p id="aiAnswer"></p>
+      </div>
 
-</div>
+    </div>
 
 
 
-</div><!-- end wrapper -->
+  </div><!-- end wrapper -->
 
-<!-- Section scripts first, router last -->
-<script src="shopping.js"></script>
-<script src="lockingtube.js"></script>
-<script src="summarize.js"></script>
-<script src="popup.js"></script>
+  <!-- Section scripts first, router last -->
+  <script src="shopping.js"></script>
+  <script src="lockingtube.js"></script>
+  <script src="summarize.js"></script>
+  <script src="popup.js"></script>
 </body>
+
 </html>

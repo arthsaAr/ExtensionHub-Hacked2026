@@ -7,8 +7,33 @@ const output = document.querySelector("#summaryOutput");
 const minWords = document.querySelector("#minWords");
 const maxWords = document.querySelector("#maxWords");
 
+function preloadSummary() {
+  chrome.storage.local.get(["llm-answer"], (result) => {
+    const summary = result["llm-answer"];
+
+    if (summary) {
+      output.innerHTML = summary;
+    } else {
+      output.innerHTML = "";
+    }
+  });
+}
+
 // Summarize Functionality
 summarizeBtn.addEventListener("click", async () => {
+  if (parseInt(minWords.value) > parseInt(maxWords.value)) {
+    output.innerHTML = "Minimum values can't be higher than maximum values!";
+    return;
+  }
+  else if (parseInt(minWords.value) < 0 || parseInt(maxWords.value) < 0) {
+    output.innerHTML = "Values can't be negative!";
+    return;
+  }
+  else if (parseInt(maxWords.value) > 1000) {
+    output.innerHTML = "Maximum words should be lower than 1000!";
+    return;
+  }
+
   output.innerHTML = "Summarizing...";
 
   // Get active tab
@@ -17,15 +42,15 @@ summarizeBtn.addEventListener("click", async () => {
   // Ask content script for page text
   chrome.tabs.sendMessage(tab.id, { type: "GET_PAGE_TEXT" }, async (response) => {
     if (chrome.runtime.lastError) {
-    console.error("Message failed:", chrome.runtime.lastError.message);
-    output.innerHTML = "Cannot summarize this page.";
-    return;
-  }
+      console.error("Message failed:", chrome.runtime.lastError.message);
+      output.innerHTML = "Cannot summarize this page.";
+      return;
+    }
 
-  if (!response?.text) {
-    output.innerHTML = "No text extracted.";
-    return;
-  }
+    if (!response?.text) {
+      output.innerHTML = "No text extracted.";
+      return;
+    }
 
     console.log("Got the text body!");
     console.log(response.text);
@@ -33,9 +58,7 @@ summarizeBtn.addEventListener("click", async () => {
     console.log(parseInt(minWords.value));
     console.log(parseInt(maxWords.value));
 
-    const summaryPrompt = `
-Summarize the following webpage with minimum words: ${parseInt(minWords.value)} and maximum words: ${parseInt(maxWords.value)}:
-
+    const summaryPrompt = `Summarize in a concise way the following webpage using the exact amount of words as the following numbers. Minimum words: ${parseInt(minWords.value)} and maximum words: ${parseInt(maxWords.value)}:
 ${response.text}
 `;
 
@@ -56,6 +79,9 @@ ${response.text}
 
       console.log("Printing the summarized output.");
       console.log(modelText);
+      chrome.storage.local.set({ "llm-answer": modelText }, () => {
+        console.log("Saved!");
+      });
 
       output.innerText = modelText;
 
@@ -138,3 +164,5 @@ askBtn.addEventListener("click", async () => {
     }
   );
 });
+
+addEventListener("DOMContentLoaded", preloadSummary);
