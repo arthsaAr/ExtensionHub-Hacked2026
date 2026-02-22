@@ -1,23 +1,22 @@
-function getCleanText() {
-  let text = "";
-
-  // grab headings for extra context
-  document.querySelectorAll("h1, h2, h3").forEach(h => {
-    let content = h.innerText.trim();
-    if (content.length > 10) text += content + ". ";
-  });
-
-  // grab paragraphs
-  document.querySelectorAll("p").forEach(p => {
-    let content = p.innerText.trim();
-    if (content.length > 50) text += content + " ";
-  });
-
-  return text;
-}
+// content.js for summarize tab
+console.log("SUMMARIZE IS LOADED!");
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "getText") {
-    sendResponse({ text: getCleanText() });
+  if (request.type === "GET_PAGE_TEXT") {
+
+    console.log("Got the summarizing request.");
+
+    // Grab the main article if it exists, otherwise full body
+    const article = document.querySelector("article");
+    const text = article ? article.innerText : document.body.innerText;
+
+    // Clean up whitespace and truncate to avoid token overflow
+    const numChars = 10000;
+    const cleanedText = text.replace(/\s+/g, " ").trim().slice(0, numChars);
+
+    console.log("The following text will be sent:");
+    console.log(cleanedText);
+
+    sendResponse({ text: cleanedText });
   }
 });

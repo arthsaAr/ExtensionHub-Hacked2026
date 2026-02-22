@@ -1,86 +1,140 @@
-// ─── summarize.js — Summarize Section ───────────────────────
+// popup.js
 
-function initSummarize() {
+const summarizeBtn = document.querySelector("#summarizeBtn");
+const output = document.querySelector("#summaryOutput");
 
-  document.getElementById("summarizeBtn").addEventListener("click", async () => {
-    let minWords = parseInt(document.getElementById("minWords").value);
-    let maxWords = parseInt(document.getElementById("maxWords").value);
+// Min and Max words
+const minWords = document.querySelector("#minWords");
+const maxWords = document.querySelector("#maxWords");
 
-    if (minWords < 20) {
-      alert("Summary cannot be under 20 words.");
-      return;
+// Summarize Functionality
+summarizeBtn.addEventListener("click", async () => {
+  output.innerHTML = "Summarizing...";
+
+  // Get active tab
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+  // Ask content script for page text
+  chrome.tabs.sendMessage(tab.id, { type: "GET_PAGE_TEXT" }, async (response) => {
+    if (chrome.runtime.lastError) {
+    console.error("Message failed:", chrome.runtime.lastError.message);
+    output.innerHTML = "Cannot summarize this page.";
+    return;
+  }
+
+  if (!response?.text) {
+    output.innerHTML = "No text extracted.";
+    return;
+  }
+
+    console.log("Got the text body!");
+    console.log(response.text);
+
+    console.log(parseInt(minWords.value));
+    console.log(parseInt(maxWords.value));
+
+    const summaryPrompt = `
+Summarize the following webpage with minimum words: ${parseInt(minWords.value)} and maximum words: ${parseInt(maxWords.value)}:
+
+${response.text}
+`;
+
+    try {
+      const res = await fetch("http://localhost:11434/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "gemma3:270m",
+          messages: [{ role: "user", content: summaryPrompt }],
+          stream: false,
+          options: { num_predict: 300 }
+        })
+      });
+
+      const data = await res.json();
+      const modelText = data.message?.content || "No response from model.";
+
+      console.log("Printing the summarized output.");
+      console.log(modelText);
+
+      output.innerText = modelText;
+
+    } catch (err) {
+      console.error("Ollama fetch error:", err);
+      output.innerText = "Error calling Ollama.";
     }
-    if (minWords > maxWords) {
-      alert("Min words cannot be greater than max words.");
-      return;
-    }
+  });
+});
 
-    document.getElementById("loader").style.display = "block";
-    document.getElementById("summaryOutput").innerHTML = "";  // ✅ was .summary-output
-    document.getElementById("summaryOutput").style.display = "none";
+// Ask AI Functionality
+const askBtn = document.getElementById("askBtn");
+const questionInput = document.getElementById("questionInput");
 
-    let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+const aiAnswer = document.getElementById("aiAnswer");
 
-    chrome.tabs.sendMessage(tab.id, { action: "getText" }, function (response) {
-      setTimeout(() => {
-        if (!response?.text) {
-          document.getElementById("loader").style.display = "none";
-          document.getElementById("summaryOutput").style.display = "block";
-          document.getElementById("summaryOutput").innerHTML = "⚠️ Could not read page. Try refreshing.";
-          return;
-        }
-        let summary = generateSummary(response.text, minWords, maxWords);
-        document.getElementById("loader").style.display = "none";
-        document.getElementById("summaryOutput").style.display = "block";  // ✅ was .summary-output
-        document.getElementById("summaryOutput").innerHTML = "<p>" + summary + "</p>";
-      }, 500);
-    });
+askBtn.addEventListener("click", async () => {
+  aiAnswer.innerHTML = "Thinking...";
+
+  const question = questionInput.value.trim();
+  if (!question) return;
+
+  console.log("Question:");
+  console.log(question);
+
+  // Get active tab
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true
   });
 
-  function generateSummary(text, minWords, maxWords) {
-    let stopWords = ["the","is","and","of","to","a","in","that","it","on","for","with","as","was","are","this","by","an"];
-    let sentences = text.match(/[^\.!\?]+[\.!\?]+/g);
-    if (!sentences) return "Not enough content to summarize.";
-
-    let wordFreq = {};
-    let words = text.toLowerCase().split(/\W+/);
-    words.forEach(word => {
-      if (!stopWords.includes(word) && word.length > 3) {
-        wordFreq[word] = (wordFreq[word] || 0) + 1;
+  // Ask content script for page text
+  chrome.tabs.sendMessage(
+    tab.id,
+    { type: "GET_PAGE_TEXT" },
+    async (response) => {
+      if (chrome.runtime.lastError) {
+        console.error("Message failed:", chrome.runtime.lastError);
+        return;
       }
-    });
 
-    let maxFreq = Math.max(...Object.values(wordFreq));
-    for (let word in wordFreq) {
-      wordFreq[word] = wordFreq[word] / maxFreq;
-    }
+      const pageText = response.text;
+      console.log("The text that the answer will be based on:");
+      console.log(pageText);
 
-    let scoredSentences = sentences.map((sentence, index) => {
-      let score = 0;
-      sentence.toLowerCase().split(/\W+/).forEach(word => {
-        if (wordFreq[word]) score += wordFreq[word];
-      });
-      return { sentence: sentence.trim(), score, index };
-    });
+      const finalPrompt = `
+      You are analyzing the following webpage.
 
-    scoredSentences.sort((a, b) => b.score - a.score);
+      PAGE CONTENT:
+      ${pageText}
 
-    let finalSummary = [];
-    let totalWords = 0;
-    for (let s of scoredSentences) {
-      let wordCount = s.sentence.split(" ").length;
-      if (totalWords + wordCount <= maxWords) {
-        finalSummary.push(s);
-        totalWords += wordCount;
+      USER QUESTION:
+      ${question}
+
+      Answer clearly and concisely.
+      `;
+
+      try {
+        const res = await fetch("http://localhost:11434/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "gemma3:270m",
+            messages: [{ role: "user", content: finalPrompt }],
+            stream: false,
+          }),
+        });
+
+        const data = await res.json();
+        const answer = data.message?.content || "No response";
+
+        aiAnswer.innerText = answer;
+        console.log("LLM Answer:", answer);
+
+      } catch (err) {
+        console.error("Ollama error:", err);
       }
-      if (totalWords >= minWords) break;
     }
-
-    if (totalWords < minWords) {
-      return "Not enough content to generate summary within selected range.";
-    }
-
-    finalSummary.sort((a, b) => a.index - b.index);
-    return finalSummary.map(s => s.sentence).join(" ");
-  }
-}
+  );
+});
