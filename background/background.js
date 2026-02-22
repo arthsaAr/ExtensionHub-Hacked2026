@@ -612,13 +612,41 @@ async function searchSerpAPI(query, originalTitle) {
     const relevant = results.filter(r => r.relevanceScore >= MIN_RELEVANCE_SCORE);
 
     // Keep only the best per site (lowest price)
-    const bestPerSite = {};
-    for (const r of relevant) {
-      const existing = bestPerSite[r.siteKey];
-      if (!existing || r.price < existing.price) bestPerSite[r.siteKey] = r;
+    // const bestPerSite = {};
+    // for (const r of relevant) {
+    //   const existing = bestPerSite[r.siteKey];
+    //   if (!existing || r.price < existing.price) bestPerSite[r.siteKey] = r;
+    // }
+
+    // Group by site — keep highest relevance per site
+  const bestPerSite = {};
+
+  for (const r of relevant) {
+    const existing = bestPerSite[r.siteKey];
+
+    if (!existing) {
+      bestPerSite[r.siteKey] = r;
+      continue;
     }
 
-    return Object.values(bestPerSite).sort((a, b) => a.price - b.price);
+    // 1Prefer higher relevance score
+    if (r.relevanceScore > existing.relevanceScore) {
+      bestPerSite[r.siteKey] = r;
+      continue;
+    }
+
+    //  If same relevance, prefer lower price
+    if (
+      r.relevanceScore === existing.relevanceScore &&
+      r.price < existing.price
+    ) {
+      bestPerSite[r.siteKey] = r;
+    }
+  }
+
+  return Object.values(bestPerSite).sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+    // return Object.values(bestPerSite).sort((a, b) => a.price - b.price);
   } catch (err) {
     console.error('[Hub] SerpAPI error:', err);
     return [];
