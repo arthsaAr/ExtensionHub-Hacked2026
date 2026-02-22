@@ -136,7 +136,7 @@ askBtn.addEventListener("click", async () => {
       USER QUESTION:
       ${question}
 
-      Answer clearly and concisely.
+      Answer clearly and concisely. Be as short as possible. Perhaps 4-5 sentences MAX.
       `;
 
       try {
